@@ -1,4 +1,5 @@
 -- 00000000000000_create_tables.sql
+-- Migración inicial para Cipher Quest (Actualizada: 2026-05-11)
 -- Migración inicial para Cipher Quest
 
 CREATE TABLE IF NOT EXISTS niveles (
