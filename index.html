@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cipher Quest - Logic & Crypto Game</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            background-color: #050510;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Orbitron', sans-serif;
+            color: #00ffff;
+        }
+        #game-container {
+            border: 4px solid #00ffff;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .instructions {
+            margin-top: 15px;
+            font-size: 12px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container"></div>
+<div class="instructions">Recolecta las letras correctas • Evita al Centinela Rojo</div>
+
+<script>
+// --- CONFIGURACIÓN SUPABASE ---
+const SUPABASE_URL = "https://cqsveyvxozegcxbidvqh.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxc3ZleXZ4b3plZ2N4YmlkdnFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1Mzg4MTcsImV4cCI6MjA5NDExNDgxN30.-wxhr3p_Sltxe37FUZzsO7h6xv0e5WOC_n6Oi-384hU";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// --- ESTADO DEL JUEGO ---
+let player, enemy, letters, mazeWalls;
+let currentLevel = null;
+let collectedWord = "";
+let score = 0;
+let uiScore, uiWord, uiHint;
+let dpad = { up: false, down: false, left: false, right: false };
+
+// --- CONFIGURACIÓN PHASER ---
+const config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    parent: 'game-container',
+    pixelArt: true,
+    physics: {
+        default: 'arcade',
+        arcade: { debug: false }
+    },
+    scene: {
+        preload: preload,
+        create: create,
+        update: update
+    }
+};
+
+const game = new Phaser.Game(config);
+
+function preload() {
+    const graphics = this.make.graphics();
+
+    // Sprite Robot (Azul Neón)
+    graphics.fillStyle(0x00ffff, 1);
+    graphics.fillRect(8, 4, 16, 24); 
+    graphics.fillStyle(0xffffff, 1);
+    graphics.fillRect(10, 8, 4, 4); 
+    graphics.fillRect(18, 8, 4, 4); 
+    graphics.generateTexture('robot', 32, 32);
+    graphics.clear();
+
+    // Sprite Enemigo (Rojo Alerta)
+    graphics.fillStyle(0xff2222, 1);
+    graphics.fillRect(4, 4, 24, 24);
+    graphics.fillStyle(0x000000, 1);
+    graphics.fillRect(8, 12, 16, 4); 
+    graphics.generateTexture('enemy', 32, 32);
+    graphics.clear();
+
+    // Bloque Laberinto (Cyber Wall)
+    graphics.lineStyle(2, 0x00ffff, 1);
+    graphics.strokeRect(2, 2, 36, 36);
+    graphics.fillStyle(0x001133, 0.8);
+    graphics.fillRect(4, 4, 32, 32);
+    graphics.generateTexture('wall', 40, 40);
+}
+
+async function create() {
+    const scene = this;
+
+    // 1. Obtener Nivel de Supabase
+    try {
+        const { data, error } = await supabaseClient
+            .from('niveles')
+            .select('*')
+            .order('id', { ascending: true })
+            .limit(1)
+            .single();
+
+        if (error || !data) throw new Error("No hay niveles en la DB");
+        currentLevel = data.config;
+    } catch (err) {
+        console.warn("Usando nivel por defecto (Verifica setup.sql):", err);
+        currentLevel = {
+            word: "CIPHER",
+            hint: "César +1 (A->B)",
+            shift: 1,
+            maze: [
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
+                [1,1,1,0,1,1,1,1,1,0,1,1,1,0,1],
+                [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            ]
+        };
+    }
+
+    // 2. Construir Mundo
+    mazeWalls = scene.physics.add.staticGroup();
+    const map = currentLevel.maze;
+    map.forEach((row, rIdx) => {
+        row.forEach((cell, cIdx) => {
+            if (cell === 1) mazeWalls.create(cIdx * 40 + 100, rIdx * 40 + 150, 'wall');
+        });
+    });
+
+    // 3. Jugador y Enemigo
+    player = scene.physics.add.sprite(150, 200, 'robot');
+    enemy = scene.physics.add.sprite(650, 400, 'enemy');
+    
+    player.setCollideWorldBounds(true).setDrag(500);
+    enemy.setCollideWorldBounds(true);
+
+    // 4. Letras Cifradas
+    letters = scene.physics.add.group();
+    setupLetters(scene);
+
+    // 5. Interacciones
+    scene.physics.add.collider(player, mazeWalls);
+    scene.physics.add.collider(enemy, mazeWalls);
+    scene.physics.add.overlap(player, letters, collectLetter, null, scene);
+    scene.physics.add.overlap(player, enemy, onPlayerDeath, null, scene);
+
+    // 6. UI Superior
+    uiScore = scene.add.text(20, 20, `PROGRESS: 0%`, { fontSize: '20px', color: '#00ffff' });
+    uiHint = scene.add.text(20, 50, `CIPHER: ${currentLevel.hint}`, { fontSize: '14px', color: '#ff00ff' });
+    uiWord = scene.add.text(400, 25, `WORD: ${"_ ".repeat(currentLevel.word.length)}`, { fontSize: '24px', color: '#ffffff' }).setOrigin(0.5);
+
+    // 7. Controles
+    createDPad(scene);
+    this.cursors = this.input.keyboard.createCursorKeys();
+
+    // Cargar score local
+    score = parseInt(localStorage.getItem('cq_total_score')) || 0;
+}
+
+function update() {
+    if (!player.active) return;
+
+    const speed = 200;
+    player.setVelocity(0);
+
+    if (this.cursors.left.isDown || dpad.left) player.setVelocityX(-speed);
+    else if (this.cursors.right.isDown || dpad.right) player.setVelocityX(speed);
+
+    if (this.cursors.up.isDown || dpad.up) player.setVelocityY(-speed);
+    else if (this.cursors.down.isDown || dpad.down) player.setVelocityY(speed);
+
+    this.physics.moveToObject(enemy, player, 100);
+}
+
+function setupLetters(scene) {
+    const word = currentLevel.word;
+    const shift = currentLevel.shift;
+
+    word.split('').forEach((char) => {
+        const code = char.charCodeAt(0);
+        const ciphered = String.fromCharCode(((code - 65 + shift) % 26) + 65);
+        
+        let x = Phaser.Math.Between(150, 650);
+        let y = Phaser.Math.Between(200, 500);
+        
+        let l = scene.add.text(x, y, ciphered, { 
+            fontSize: '28px', 
+            color: '#ffff00', 
+            fontStyle: 'bold',
+            backgroundColor: '#00000088'
+        });
+        scene.physics.add.existing(l);
+        l.setData('val', char);
+        letters.add(l);
+    });
+}
+
+function collectLetter(p, l) {
+    const val = l.getData('val');
+    if (val === currentLevel.word[collectedWord.length]) {
+        collectedWord += val;
+        score += 500;
+        l.destroy();
+        
+        let progress = Math.round((collectedWord.length / currentLevel.word.length) * 100);
+        uiScore.setText(`PROGRESS: ${progress}%`);
+        
+        let display = "";
+        for(let i=0; i<currentLevel.word.length; i++) {
+            display += (collectedWord[i] || "_") + " ";
+        }
+        uiWord.setText(`WORD: ${display}`);
+
+        if (collectedWord === currentLevel.word) handleWin(this);
+    } else {
+        this.cameras.main.shake(200, 0.01);
+    }
+}
+
+async function handleWin(scene) {
+    player.active = false;
+    scene.physics.pause();
+    localStorage.setItem('cq_total_score', score);
+
+    scene.add.text(400, 300, 'WORD DECIPHERED!', {
+        fontSize: '40px', color: '#00ff00', align: 'center'
+    }).setOrigin(0.5);
+
+    const user = "Recruit_" + Math.floor(Math.random()*1000);
+    await supabaseClient.from('rankings').insert([{ username: user, score: score }]);
+    setTimeout(() => window.location.reload(), 3000);
+}
+
+function onPlayerDeath() {
+    this.physics.pause();
+    player.setTint(0xff0000);
+    player.active = false;
+    this.add.text(400, 300, 'SYSTEM COMPROMISED\nCLICK TO REBOOT', {
+        fontSize: '32px', color: '#ff0000', align: 'center'
+    }).setOrigin(0.5).setInteractive().on('pointerdown', () => window.location.reload());
+}
+
+function createDPad(scene) {
+    const x = 100, y = 480, size = 60;
+    const btn = (bx, by, dir, symbol) => {
+        let b = scene.add.circle(bx, by, 25, 0x00ffff, 0.2).setInteractive().setScrollFactor(0);
+        scene.add.text(bx, by, symbol, { fontSize: '20px' }).setOrigin(0.5);
+        b.on('pointerdown', () => dpad[dir] = true);
+        b.on('pointerup', () => dpad[dir] = false);
+        b.on('pointerout', () => dpad[dir] = false);
+    };
+    btn(x, y - size, 'up', '▲');
+    btn(x, y + size, 'down', '▼');
+    btn(x - size, y, 'left', '◀');
+    btn(x + size, y, 'right', '▶');
+}
+</script>
+</body>
+</html>
