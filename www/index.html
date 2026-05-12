@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SaidVerso v4.0</title>
+    <title>SaidVerso v4.1</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -15,17 +15,18 @@
         input { background: #1a1a2e; border: 2px solid #00ffff; color: #00ffff; padding: 15px; font-family: 'Courier Prime', monospace; font-size: 18px; margin: 10px; text-align: center; outline: none; width: 80%; }
         button { background: #00ffff; color: #000; border: none; padding: 12px 25px; font-family: 'Courier Prime', monospace; font-weight: bold; font-size: 14px; cursor: pointer; box-shadow: 0 0 15px #00ffff; margin-top: 10px; text-transform: uppercase; }
         
-        /* Intro Styles */
         #intro-screen { z-index: 500; background: #000; transition: opacity 1s; }
         .boot-line { font-size: 10px; color: #00ff00; width: 100%; text-align: left; padding-left: 20px; opacity: 0.7; }
         
-        /* Dashboard Styles */
         #dashboard-screen { background: radial-gradient(circle, #0a0a2e 0%, #020205 100%); }
         .stat-card { background: rgba(0, 255, 255, 0.05); border: 1px solid #00ffff; padding: 15px; width: 85%; margin: 10px 0; border-radius: 8px; }
         .badge { display: inline-block; padding: 5px 10px; background: #ffff00; color: #000; font-size: 10px; border-radius: 3px; margin: 5px; font-weight: bold; }
         
         #pause-btn { position: absolute; bottom: 20px; left: 20px; width: 50px; height: 50px; background: rgba(0,255,255,0.2); border: 2px solid #00ffff; color: #00ffff; border-radius: 50%; font-size: 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; pointer-events: auto; z-index: 200; }
         .phrase { font-style: italic; font-size: 12px; color: #ff00ff; margin: 15px 0; }
+
+        /* Farewell Style */
+        #farewell-screen { z-index: 600; background: #000; display: none; }
     </style>
 </head>
 <body>
@@ -39,7 +40,7 @@
     <div id="intro-screen" class="modal">
         <div id="boot-log" style="height: 150px; overflow: hidden; width: 100%; margin-bottom: 30px;"></div>
         <h1 id="intro-logo" style="color:#00ffff; font-size: 40px; opacity: 0; text-shadow: 0 0 20px #00ffff;">SAIDVERSO</h1>
-        <p id="intro-sub" style="color:#ff00ff; opacity: 0;">SISTEMA OPERATIVO v4.0</p>
+        <p id="intro-sub" style="color:#ff00ff; opacity: 0;">SISTEMA OPERATIVO v4.1</p>
     </div>
 
     <!-- LOGIN -->
@@ -49,10 +50,10 @@
         <button onclick="showDashboard()">ENTRAR AL SISTEMA</button>
     </div>
 
-    <!-- DASHBOARD (MENU PRINCIPAL) -->
+    <!-- DASHBOARD -->
     <div id="dashboard-screen" class="modal" style="display:none;">
         <h2 id="dash-welcome" style="color:#00ffff; margin-top: 0;">HOLA, EXPLORADOR</h2>
-        <div class="phrase" id="motivational-phrase">"Cada letra es un paso hacia la sabiduría."</div>
+        <div class="phrase" id="motivational-phrase"></div>
         
         <div class="stat-card">
             <div style="font-size: 12px; color:#ffff00;">MISIÓN ACTUAL</div>
@@ -64,8 +65,19 @@
             <div id="dash-badges"></div>
         </div>
 
-        <button style="font-size: 20px; padding: 20px 40px; margin-top: 20px;" onclick="startGame()">¡INICIAR EXPLORACIÓN!</button>
-        <button style="background: none; border: 1px solid #ff00ff; color:#ff00ff; margin-top: 20px;" onclick="showLogin()">CAMBIAR USUARIO</button>
+        <button style="font-size: 18px; padding: 15px 35px; margin-top: 15px;" onclick="startGame()">¡INICIAR EXPLORACIÓN!</button>
+        <div style="display:flex; gap:10px; margin-top:15px;">
+            <button style="background: none; border: 1px solid #ff00ff; color:#ff00ff; font-size: 10px;" onclick="showLogin()">CAMBIAR USUARIO</button>
+            <button style="background: #ff0000; color:white; font-size: 10px; box-shadow: 0 0 10px #ff0000;" onclick="showFarewell()">APAGAR SISTEMA</button>
+        </div>
+    </div>
+
+    <!-- FAREWELL (DESPEDIDA) -->
+    <div id="farewell-screen" class="modal">
+        <h2 style="color:#ff0000; text-shadow: 0 0 15px #ff0000;">DESCONECTANDO...</h2>
+        <p id="farewell-text" style="font-size: 16px; margin: 20px 0;"></p>
+        <div class="boot-line" id="shutdown-log" style="text-align:center;">> Guardando progreso...</div>
+        <p style="font-size: 10px; color:#555; margin-top: 30px;">Puedes cerrar la aplicación ahora.</p>
     </div>
 
     <!-- PAUSA -->
@@ -138,6 +150,14 @@ const phrases = [
     "¡Explora, aprende y domina el cifrado César!"
 ];
 
+const farewellPhrases = [
+    "¡Buen trabajo hoy, explorador!",
+    "Said, tus descubrimientos han sido guardados.",
+    "¡Los robots descansan, vuelve pronto!",
+    "¡Sistemas en reposo. Gracias por jugar!",
+    "¡Hasta la próxima aventura en SaidVerso!"
+];
+
 function preload() {
     const graphics = this.make.graphics();
     graphics.fillStyle(0x00ffff); graphics.fillRect(2, 2, 20, 20);
@@ -157,33 +177,23 @@ async function create() {
         allLevels = data.map(d => d.config);
     } catch (e) { console.error("Error DB:", e); }
     if (allLevels.length === 0) allLevels = [{ word: "SAID", hint: "REGLA: +1", shift: 1, maze: [[1,1,1],[1,0,1],[1,1,1]] }];
-    
     const savedLevel = localStorage.getItem('cq_current_level');
     if (savedLevel) currentLevelIndex = parseInt(savedLevel);
     const savedStreak = localStorage.getItem('cq_streak');
     if (savedStreak) streak = parseInt(savedStreak);
-    
     loadLevel(this);
     this.physics.pause();
 }
 
 function runIntro() {
     const log = document.getElementById('boot-log');
-    const lines = [
-        "> CONECTANDO CON SUPABASE...",
-        "> DESCARGANDO LABERINTOS v4.0...",
-        "> CALIBRANDO CENTINELAS...",
-        "> CARGANDO DICCIONARIO...",
-        "> SISTEMA LISTO."
-    ];
+    const lines = ["> CONECTANDO...", "> CARGANDO MUNDOS...", "> SISTEMA LISTO."];
     let i = 0;
     const interval = setInterval(() => {
         if(i < lines.length) {
             const div = document.createElement('div');
-            div.className = 'boot-line';
-            div.innerText = lines[i];
-            log.appendChild(div);
-            AudioFX.play(400 + i*100, 'sine', 0.05, 0.02);
+            div.className = 'boot-line'; div.innerText = lines[i];
+            log.appendChild(div); AudioFX.play(400 + i*100, 'sine', 0.05, 0.02);
             i++;
         } else {
             clearInterval(interval);
@@ -191,19 +201,15 @@ function runIntro() {
             document.getElementById('intro-sub').style.opacity = 1;
             setTimeout(() => {
                 document.getElementById('intro-screen').style.opacity = 0;
-                setTimeout(() => {
-                    document.getElementById('intro-screen').style.display = 'none';
-                    checkInitialState();
-                }, 1000);
-            }, 2000);
+                setTimeout(() => { document.getElementById('intro-screen').style.display = 'none'; checkInitialState(); }, 1000);
+            }, 1500);
         }
     }, 400);
 }
 
 function checkInitialState() {
     const name = localStorage.getItem('cq_username');
-    if (name) showDashboard();
-    else showLogin();
+    if (name) showDashboard(); else showLogin();
 }
 
 function showLogin() {
@@ -215,21 +221,36 @@ function showDashboard() {
     const nameInput = document.getElementById('username-input').value.trim();
     const name = nameInput || localStorage.getItem('cq_username') || "EXPLORADOR";
     if (nameInput) localStorage.setItem('cq_username', name);
-
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('dashboard-screen').style.display = 'flex';
     document.getElementById('dash-welcome').innerText = `HOLA, ${name}`;
     document.getElementById('dash-level').innerText = `MISIÓN ${currentLevelIndex + 1}`;
     document.getElementById('motivational-phrase').innerText = `"${phrases[Math.floor(Math.random()*phrases.length)]}"`;
-    
-    // Generar insignias
     const badges = document.getElementById('dash-badges');
     badges.innerHTML = "";
     if (currentLevelIndex >= 0) badges.innerHTML += '<span class="badge">🎖️ NOVATO</span>';
-    if (currentLevelIndex >= 5) badges.innerHTML += '<span class="badge">🚀 EXPLORADOR</span>';
-    if (currentLevelIndex >= 20) badges.innerHTML += '<span class="badge">🛡️ EXPERTO</span>';
-    if (currentLevelIndex >= 50) badges.innerHTML += '<span class="badge">🔮 CRIPTÓGRAFO</span>';
-    if (currentLevelIndex >= 99) badges.innerHTML += '<span class="badge">👑 MAESTRO</span>';
+    if (currentLevelIndex >= 10) badges.innerHTML += '<span class="badge">🚀 EXPERTO</span>';
+    if (currentLevelIndex >= 50) badges.innerHTML += '<span class="badge">🔮 MAESTRO</span>';
+}
+
+function showFarewell() {
+    const name = localStorage.getItem('cq_username') || "EXPLORADOR";
+    document.getElementById('dashboard-screen').style.display = 'none';
+    document.getElementById('farewell-screen').style.display = 'flex';
+    document.getElementById('farewell-text').innerText = farewellPhrases[Math.floor(Math.random()*farewellPhrases.length)];
+    
+    let logs = ["> GUARDANDO NIVEL...", "> CERRANDO CONEXIÓN...", "> APAGANDO NÚCLEO...", "> ADIÓS, " + name];
+    let i = 0;
+    const interval = setInterval(() => {
+        if(i < logs.length) {
+            document.getElementById('shutdown-log').innerText = logs[i];
+            AudioFX.play(300 - i*50, 'sine', 0.1, 0.02);
+            i++;
+        } else {
+            clearInterval(interval);
+            setTimeout(() => { document.body.style.background = "#000"; document.body.innerHTML = ""; }, 1000);
+        }
+    }, 800);
 }
 
 function startGame() {
@@ -247,16 +268,13 @@ function togglePause() {
 }
 
 function startScanMode() {
-    isScanning = true;
-    game.scene.scenes[0].physics.pause();
-    let count = 3;
-    countdownText.setText(`ESCANEANDO... ${count}`).setVisible(true);
+    isScanning = true; game.scene.scenes[0].physics.pause();
+    let count = 3; countdownText.setText(`ESCANEANDO... ${count}`).setVisible(true);
     const timer = setInterval(() => {
         count--;
         if (count > 0) countdownText.setText(`ESCANEANDO... ${count}`);
         else {
-            clearInterval(timer);
-            countdownText.setText("¡EXPLORA!").setColor('#00ff00');
+            clearInterval(timer); countdownText.setText("¡EXPLORA!").setColor('#00ff00');
             setTimeout(() => { countdownText.setVisible(false); isScanning = false; if (!isPaused) game.scene.scenes[0].physics.resume(); }, 1000);
         }
     }, 1000);
@@ -294,10 +312,7 @@ function loadLevel(scene) {
         uiTextLevel = scene.add.text(20, 110, "", { fontSize: '12px', color: '#00ffff' }).setDepth(10);
         countdownText = scene.add.text(225, 400, "", { fontSize: '32px', color: '#ffff00', fontWeight: 'bold', backgroundColor: '#000000aa' }).setOrigin(0.5).setDepth(500);
     }
-    updateWordDisplay();
-    uiTextHint.setText("REGLA: SALTA 1 LETRA (A->B)");
-    uiTextLevel.setText(`NIVEL: ${currentLevelIndex + 1}`);
-    updateTask();
+    updateWordDisplay(); uiTextLevel.setText(`NIVEL: ${currentLevelIndex + 1}`); updateTask();
     if (!scene.cursors) { createDPad(scene); scene.cursors = scene.input.keyboard.createCursorKeys(); }
 }
 
@@ -347,7 +362,6 @@ function collectLetter(p, l) {
     if (val === currentLevel.word[collectedWord.length]) {
         AudioFX.collect(); collectedWord += val; l.destroy(); updateWordDisplay();
         if (collectedWord === currentLevel.word) { AudioFX.win(); showLearningPhase(); }
-        else updateTask();
     } else { AudioFX.wrong(); this.cameras.main.shake(100, 0.005); }
 }
 
@@ -372,21 +386,18 @@ function checkQuiz(selected, correct) {
     if (selected === correct) {
         AudioFX.correct(); document.getElementById('learning-modal').style.display = 'none';
         currentLevelIndex++; localStorage.setItem('cq_current_level', currentLevelIndex);
-        saveScore();
-        if (currentLevelIndex < allLevels.length) { 
-            showDashboard();
-        } else { alert("¡Felicidades!"); window.location.reload(); }
+        saveScore(); if (currentLevelIndex < allLevels.length) showDashboard();
+        else { alert("¡Felicidades Maestro!"); window.location.reload(); }
     } else { AudioFX.wrong(); alert("¡Analiza de nuevo!"); }
 }
 
 async function saveScore() {
-    const user = localStorage.getItem('cq_username') || "Explorador";
+    const user = localStorage.getItem('cq_username') || "EXPLORADOR";
     await supabaseClient.from('rankings').upsert([{ username: user, score: currentLevelIndex * 100 }], { onConflict: 'username' });
 }
 
 function updateTask() {
-    const nextChar = currentLevel.word[collectedWord.length];
-    const shift = currentLevel.shift;
+    const nextChar = currentLevel.word[collectedWord.length]; const shift = currentLevel.shift;
     const cipheredNext = String.fromCharCode(((nextChar.charCodeAt(0) - 65 + shift) % 26) + 65);
     document.getElementById('next-task').innerText = `BUSCA: ${cipheredNext}`;
 }
