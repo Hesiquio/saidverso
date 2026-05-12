@@ -38,12 +38,54 @@
             font-size: 14px;
             text-transform: uppercase;
         }
+        #login-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 5, 16, 0.98);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            pointer-events: all;
+        }
+        #login-screen input {
+            background: #1a1a2e;
+            border: 2px solid #00ffff;
+            color: #00ffff;
+            padding: 15px;
+            font-family: 'Courier Prime', monospace;
+            font-size: 20px;
+            margin: 20px;
+            text-align: center;
+            outline: none;
+            width: 250px;
+        }
+        #login-screen button {
+            background: #00ffff;
+            color: #000;
+            border: none;
+            padding: 15px 40px;
+            font-family: 'Courier Prime', monospace;
+            font-weight: bold;
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 0 0 15px #00ffff;
+        }
     </style>
 </head>
 <body>
 
 <div id="game-wrapper">
     <div id="game-container"></div>
+    
+    <div id="login-screen">
+        <h1 style="color:#00ffff; text-shadow: 0 0 15px #00ffff; letter-spacing: 4px;">CIPHER QUEST</h1>
+        <p style="color:#ff00ff; font-size: 12px; margin-bottom: 30px;">INTRODUCE TU NOMBRE DE AGENTE</p>
+        <input type="text" id="username-input" placeholder="NOMBRE..." maxlength="12">
+        <button onclick="startGame()">INICIAR MISIÓN</button>
+    </div>
+
     <div class="ui-overlay">
         <div id="status">DB: ONLINE</div>
         <div id="next-task" style="color: #ffff00;">BUSCA LA LETRA: ?</div>
@@ -156,6 +198,20 @@ async function create() {
     updateTask();
     createDPad(scene);
     this.cursors = this.input.keyboard.createCursorKeys();
+
+    // Pausar hasta que el usuario inicie
+    scene.physics.pause();
+    const savedName = localStorage.getItem('cq_username');
+    if (savedName) document.getElementById('username-input').value = savedName;
+}
+
+function startGame() {
+    const name = document.getElementById('username-input').value.trim();
+    if (name.length < 2) return alert("¡Ingresa un nombre de agente!");
+    
+    localStorage.setItem('cq_username', name);
+    document.getElementById('login-screen').style.display = 'none';
+    game.scene.scenes[0].physics.resume();
 }
 
 function update() {
@@ -202,12 +258,21 @@ function collectLetter(p, l) {
         
         if (collectedWord === currentLevel.word) {
             this.add.text(400, 300, '¡DESCIFRADO!', { fontSize: '40px', color: '#00ff00' }).setOrigin(0.5);
+            saveScore();
             setTimeout(() => window.location.reload(), 3000);
         } else {
             updateTask();
         }
     } else {
         this.cameras.main.shake(100, 0.01);
+    }
+}
+
+async function saveScore() {
+    if (supabaseClient) {
+        const user = localStorage.getItem('cq_username') || "Agente_Anonimo";
+        const scoreValue = 1000; // O la lógica de puntos que prefieras
+        await supabaseClient.from('rankings').insert([{ username: user, score: scoreValue }]);
     }
 }
 
