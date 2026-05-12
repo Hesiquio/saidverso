@@ -39,23 +39,26 @@ class SaidVersoScene extends Phaser.Scene {
     }
 
     create() {
-        // Generar texturas simples con Graphics
+        // Generar texturas con Emojis vía Canvas
+        const makeEmojiTexture = (key, emoji, size) => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 32; canvas.height = 32;
+            const ctx = canvas.getContext('2d');
+            ctx.font = `${size}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(emoji, 16, 18);
+            this.textures.addCanvas(key, canvas);
+        };
+
+        makeEmojiTexture('robot', '👨‍🚀', 26);
+        makeEmojiTexture('enemy', '👾', 28);
+        makeEmojiTexture('chest', '🎁', 24);
+
         const g = this.make.graphics({ add: false });
-
-        g.fillStyle(0x00ffff); g.fillRect(0, 0, 24, 24);
-        g.generateTexture('robot', 24, 24); g.clear();
-
-        g.fillStyle(0xff3333); g.fillCircle(12, 12, 11);
-        g.generateTexture('enemy', 24, 24); g.clear();
-
         g.fillStyle(0x0d1b4b); g.fillRect(0, 0, 40, 40);
         g.lineStyle(1, 0x00ffff, 0.4); g.strokeRect(1, 1, 38, 38);
         g.generateTexture('wall', 40, 40); g.clear();
-
-        g.fillStyle(0x8B4513); g.fillRect(8, 12, 24, 16);
-        g.fillStyle(0xFFD700); g.fillRect(18, 18, 4, 4);
-        g.generateTexture('chest', 40, 40); g.clear();
-
         g.destroy();
 
         // Teclas
