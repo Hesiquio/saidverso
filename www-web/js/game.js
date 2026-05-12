@@ -728,7 +728,17 @@ function updateWordDisplay() {
     const shown = collectedWord.split('').join(' ');
     // Se usan espacios adicionales para hacer el guión mucho más ancho y visible
     const blanks = ' _ '.repeat(currentLevel.word.length - collectedWord.length).trim();
-    uiTextWord.setText(`${shown} ${blanks}`.trim());
+    if (uiTextWord) uiTextWord.setText(`${shown} ${blanks}`.trim());
+
+    // Actualizar HUD HTML (Moderno)
+    const levelEl = document.getElementById('ui-level-html');
+    if (levelEl) levelEl.innerText = `N${State.currentLevelIndex + 1}`;
+
+    const wordEl = document.getElementById('ui-word-html');
+    if (wordEl) wordEl.innerText = `${shown} ${blanks}`.trim();
+
+    const hintEl = document.getElementById('ui-hint-html');
+    if (hintEl) hintEl.innerText = currentLevel.hint;
     
     let helpMsg = currentLevel.hint;
     if (collectedWord.length < currentLevel.word.length) {

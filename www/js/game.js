@@ -723,6 +723,9 @@ function updateWordDisplay() {
     const blanks = ' _ '.repeat(currentLevel.word.length - collectedWord.length).trim();
 
     // Actualizar HTML
+    const levelEl = document.getElementById('ui-level-html');
+    if (levelEl) levelEl.innerText = `N${State.currentLevelIndex + 1}`;
+
     const wordEl = document.getElementById('ui-word-html');
     if (wordEl) wordEl.innerText = `${shown} ${blanks}`.trim();
 

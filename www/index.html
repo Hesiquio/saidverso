@@ -243,7 +243,10 @@
                 <!-- Palabra y Pista -->
                 <div style="display:flex; flex-direction:column; align-items:center; padding:0 10px; min-width:140px;">
                     <div id="ui-word-html" style="color:#00ffff; font-size:16px; font-weight:bold; letter-spacing:2px;">_ _ _ _</div>
-                    <div id="ui-hint-html" style="color:rgba(255,0,255,0.8); font-size:8px; font-weight:bold; text-transform:uppercase; margin-top:2px; text-align:center;">REGLA: +1</div>
+                    <div style="display:flex; gap:6px; color:rgba(255,0,255,0.8); font-size:9px; font-weight:bold; text-transform:uppercase; margin-top:2px;">
+                        <span id="ui-level-html" style="color:#00ff99;">N1</span>
+                        <span id="ui-hint-html">REGLA: +1</span>
+                    </div>
                 </div>
                 
                 <div class="hud-sep" style="background:rgba(255,0,255,0.3);"></div>
@@ -266,6 +269,8 @@
         <h2 style="margin-bottom:8px;">IDENTIFICACIÓN</h2>
         <p style="font-size:12px; color:rgba(0,255,255,0.6); margin-bottom:16px;">Elige tu nombre de explorador</p>
         <input type="text" id="username-input" placeholder="TU NOMBRE" maxlength="14"
+               onfocus="if(window.game) game.input.keyboard.enabled=false"
+               onblur="if(window.game) game.input.keyboard.enabled=true"
                onkeydown="if(event.key==='Enter') UI.registerUser()">
         <button onclick="UI.registerUser()" style="width:80%;">ENTRAR AL SISTEMA</button>
     </div>
