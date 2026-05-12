@@ -273,13 +273,21 @@
             <div class="stat-card"><div class="stat-label">RACHA</div><div class="stat-value" id="dash-streak">🔥 0</div></div>
             <div class="stat-card"><div class="stat-label">CRÉDITOS</div><div class="stat-value" id="dash-coins">🪙 0</div></div>
         </div>
+        
+        <div style="background:rgba(0,255,255,0.06); border: 1px solid rgba(0,255,255,0.2); border-radius:6px; padding:10px; width:90%; margin-bottom:16px; display:flex; justify-content:space-around; font-size:12px; align-items:center;">
+            <span title="Estrella (Neutraliza)"><kbd>1</kbd> ⭐ <strong id="dash-inv-star" style="color:#ffff00">0</strong></span>
+            <span title="Fantasma (Paredes)"><kbd>2</kbd> 👻 <strong id="dash-inv-ghost" style="color:#ffff00">0</strong></span>
+            <span title="Velocidad"><kbd>3</kbd> ⚡ <strong id="dash-inv-speed" style="color:#ffff00">0</strong></span>
+            <span title="Vida Extra"><kbd>4</kbd> ➕ <strong id="dash-inv-life" style="color:#ffff00">0</strong></span>
+        </div>
+        
         <div class="dash-actions">
             <button style="font-size:17px; padding:15px; width:85%;" onclick="startGame()">¡INICIAR EXPLORACIÓN!</button>
             <button class="btn-secondary" onclick="UI.openShop()">🛒 TIENDA DE PODERES</button>
             <button class="btn-secondary" onclick="UI.openRanking()">🏆 RANKING MUNDIAL</button>
             <button class="btn-ghost" onclick="UI.logout()">CAMBIAR USUARIO</button>
         </div>
-        <p class="key-hint">Mover: <kbd>WASD</kbd> / <kbd>Flechas</kbd> &nbsp;|&nbsp; Poderes: <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> (10 seg)</p>
+        <p class="key-hint">Moverte: <kbd>WASD</kbd> o <kbd>Flechas</kbd> | Pausar: <kbd>ESC</kbd></p>
     </div>
 
     <!-- TIENDA -->

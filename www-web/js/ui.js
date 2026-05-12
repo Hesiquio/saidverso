@@ -47,6 +47,15 @@ const UI = {
         document.getElementById('dash-streak').innerText = `🔥 ${State.streak}`;
         document.getElementById('dash-coins').innerText  = `🪙 ${State.coins}`;
         
+        const inv = State.inventory || { star: 0, ghost: 0, speed: 0, life: 0 };
+        const elStar = document.getElementById('dash-inv-star');
+        if (elStar) {
+            elStar.innerText = inv.star;
+            document.getElementById('dash-inv-ghost').innerText = inv.ghost;
+            document.getElementById('dash-inv-speed').innerText = inv.speed;
+            document.getElementById('dash-inv-life').innerText  = inv.life;
+        }
+        
         // Guardar progreso actual a Supabase siempre que pasamos por el dashboard
         Database.saveProfile(name, State);
         
