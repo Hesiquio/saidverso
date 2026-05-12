@@ -113,12 +113,15 @@ function loadLevel(scene) {
     updateLivesUI();
     updateCoinsUI();
 
-    // Limpiar grupos previos
-    [mazeWalls, letters, coinsGroup].forEach(g => g && g.clear(true, true));
+    // Crear o reutilizar grupos (CRÍTICO para que los colliders no se pierdan)
+    if (!mazeWalls) mazeWalls = scene.physics.add.staticGroup();
+    else mazeWalls.clear(true, true);
 
-    mazeWalls  = scene.physics.add.staticGroup();
-    letters    = scene.physics.add.group();
-    coinsGroup = scene.physics.add.group();
+    if (!letters) letters = scene.physics.add.group();
+    else letters.clear(true, true);
+
+    if (!coinsGroup) coinsGroup = scene.physics.add.group();
+    else coinsGroup.clear(true, true);
 
     const mazeWidth = currentLevel.maze[0].length * 40;
     const mazeHeight = currentLevel.maze.length * 40;
@@ -135,24 +138,6 @@ function loadLevel(scene) {
         });
     });
 
-    // Personajes
-    if (!player) {
-        player = scene.physics.add.sprite(freeSpaces[0].x, freeSpaces[0].y, 'robot').setDepth(5);
-        enemy  = scene.physics.add.sprite(freeSpaces[freeSpaces.length-1].x, freeSpaces[freeSpaces.length-1].y, 'enemy').setDepth(5);
-        player.setCollideWorldBounds(true);
-        enemy.setCollideWorldBounds(true);
-        player.setBodySize(18, 18);
-        scene.physics.add.collider(player, mazeWalls, null, () => State.activePower !== 'ghost');
-        scene.physics.add.collider(enemy,  mazeWalls);
-        scene.physics.add.overlap(player, enemy, handleEnemyCollision, null, scene);
-    } else {
-        player.setPosition(freeSpaces[0].x, freeSpaces[0].y);
-        enemy.setPosition(freeSpaces[freeSpaces.length-1].x, freeSpaces[freeSpaces.length-1].y);
-        enemy.setActive(true).setVisible(true);
-        player.setAlpha(1); player.clearTint();
-        State.activePower = null;
-    }
-
     // Monedas
     for (let i = 0; i < 5; i++) {
         const p = Phaser.Utils.Array.RemoveRandomElement(freeSpaces);
@@ -161,11 +146,33 @@ function loadLevel(scene) {
         scene.physics.add.existing(c);
         coinsGroup.add(c);
     }
-    scene.physics.add.overlap(player, coinsGroup, collectCoin, null, scene);
 
     // Letras cifradas
     setupLetters(scene, freeSpaces);
-    scene.physics.add.overlap(player, letters, collectLetter, null, scene);
+
+    // Personajes y Reglas Físicas (Solo se declaran una vez)
+    if (!player) {
+        player = scene.physics.add.sprite(freeSpaces[0].x, freeSpaces[0].y, 'robot').setDepth(5);
+        enemy  = scene.physics.add.sprite(freeSpaces[freeSpaces.length-1].x, freeSpaces[freeSpaces.length-1].y, 'enemy').setDepth(5);
+        player.setCollideWorldBounds(true);
+        enemy.setCollideWorldBounds(true);
+        player.setBodySize(18, 18);
+        
+        // Colliders
+        scene.physics.add.collider(player, mazeWalls, null, () => State.activePower !== 'ghost');
+        scene.physics.add.collider(enemy,  mazeWalls);
+        
+        // Overlaps
+        scene.physics.add.overlap(player, enemy, handleEnemyCollision, null, scene);
+        scene.physics.add.overlap(player, coinsGroup, collectCoin, null, scene);
+        scene.physics.add.overlap(player, letters, collectLetter, null, scene);
+    } else {
+        player.setPosition(freeSpaces[0].x, freeSpaces[0].y);
+        enemy.setPosition(freeSpaces[freeSpaces.length-1].x, freeSpaces[freeSpaces.length-1].y);
+        enemy.setActive(true).setVisible(true);
+        player.setAlpha(1); player.clearTint();
+        State.activePower = null;
+    }
 
     // HUD en canvas
     if (!uiTextWord) {
