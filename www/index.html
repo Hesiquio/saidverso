@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SaidVerso v3.5</title>
+    <title>SaidVerso v3.6</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -11,48 +11,65 @@
         body { margin: 0; background: #020205; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: 'Courier Prime', monospace; }
         #game-wrapper { position: relative; width: 100vw; height: 100vh; background: #000; overflow: hidden; }
         .ui-overlay { position: absolute; top: 10px; left: 10px; width: calc(100% - 20px); pointer-events: none; color: #00ffff; display: flex; justify-content: space-between; font-size: 12px; text-transform: uppercase; z-index: 10; }
-        .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 5, 25, 0.98); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; padding: 30px; box-sizing: border-box; color: #00ffff; text-align: center; }
-        input { background: #1a1a2e; border: 2px solid #00ffff; color: #00ffff; padding: 15px; font-family: 'Courier Prime', monospace; font-size: 20px; margin: 20px; text-align: center; outline: none; width: 80%; }
-        button { background: #00ffff; color: #000; border: none; padding: 15px 30px; font-family: 'Courier Prime', monospace; font-weight: bold; font-size: 16px; cursor: pointer; box-shadow: 0 0 15px #00ffff; margin-top: 10px; }
+        .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 5, 25, 0.98); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; padding: 20px; box-sizing: border-box; color: #00ffff; text-align: center; }
+        input { background: #1a1a2e; border: 2px solid #00ffff; color: #00ffff; padding: 15px; font-family: 'Courier Prime', monospace; font-size: 18px; margin: 10px; text-align: center; outline: none; width: 80%; }
+        button { background: #00ffff; color: #000; border: none; padding: 12px 25px; font-family: 'Courier Prime', monospace; font-weight: bold; font-size: 14px; cursor: pointer; box-shadow: 0 0 15px #00ffff; margin-top: 10px; }
         .quiz-option { background: #1a1a2e; border: 1px solid #00ffff; color: #00ffff; padding: 12px; margin: 8px; width: 90%; cursor: pointer; font-family: 'Courier Prime', monospace; }
         .quiz-option:hover { background: #00ffff; color: #000; }
+        
+        /* Estilo Salón de la Fama */
+        #leaderboard { margin-top: 20px; font-size: 11px; color: #ffff00; width: 80%; background: rgba(0,255,255,0.05); padding: 10px; border-radius: 5px; }
+        .rank-item { display: flex; justify-content: space-between; margin: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
     </style>
 </head>
 <body>
 
 <div id="game-wrapper">
     <div id="game-container"></div>
+    
+    <!-- LOGIN + SALÓN DE LA FAMA -->
     <div id="login-screen" class="modal">
-        <h1 style="color:#00ffff; text-shadow: 0 0 15px #00ffff;">SAIDVERSO</h1>
-        <p style="color:#ff00ff; font-size: 12px;">BIENVENIDO EXPLORADOR</p>
+        <h1 style="color:#00ffff; text-shadow: 0 0 15px #00ffff; margin-bottom: 5px;">SAIDVERSO</h1>
+        <p style="color:#ff00ff; font-size: 10px;">MUNDO DE EXPLORADORES</p>
+        
+        <div id="leaderboard">
+            <div style="font-weight:bold; margin-bottom:5px; color:#00ffff;">🏆 MEJORES EXPLORADORES</div>
+            <div id="rank-list">Cargando ranking...</div>
+        </div>
+
         <input type="text" id="username-input" placeholder="TU NOMBRE" maxlength="12">
         <button onclick="showInstructions()">SIGUIENTE</button>
     </div>
+
+    <!-- INSTRUCCIONES -->
     <div id="instruction-screen" class="modal" style="display:none;">
-        <h2 style="color:#ffff00;">INSTRUCCIONES</h2>
-        <p style="font-size: 13px; line-height: 1.4; text-align: left;">
-            🎯 <b>MISIÓN:</b> Busca las letras siguiendo la regla (A->B).<br><br>
-            🚨 <b>CENTINELA:</b> El robot rojo te vigila. ¡Si te toca, pierdes una vida!<br><br>
-            ❤️ <b>VIDAS:</b> Tienes 3 oportunidades por nivel.<br><br>
-            🔊 <b>SONIDO:</b> ¡Sube el volumen para oír los bips del robot!
+        <h2 style="color:#ffff00;">¡HOLA EXPLORADOR!</h2>
+        <p style="font-size: 12px; line-height: 1.4; text-align: left;">
+            🔥 <b>RACHAS:</b> Gana niveles seguidos para ser el #1.<br><br>
+            🚨 <b>CUIDADO:</b> El centinela rojo quita vidas.<br><br>
+            ⭐ <b>OBJETIVO:</b> Busca las letras en orden (A->B).
         </p>
-        <button onclick="startGame()">¡EMPEZAR!</button>
+        <button onclick="startGame()">¡A JUGAR!</button>
     </div>
+
+    <!-- APRENDIZAJE -->
     <div id="learning-modal" class="modal" style="display:none; z-index: 150;">
-        <h2 id="learn-title" style="color:#ffff00;">DATOS RECUPERADOS</h2>
-        <p id="learn-text" style="font-size: 14px; margin: 15px 0;"></p>
+        <h2 id="learn-title" style="color:#ffff00;">¡MISIÓN ÉXITO!</h2>
+        <div id="streak-msg" style="color:#ff00ff; font-weight:bold; margin-bottom:10px;"></div>
+        <p id="learn-text" style="font-size: 14px; margin: 10px 0;"></p>
         <hr style="width:100%; border:0; border-top:1px solid #00ffff; margin:15px 0;">
         <p id="quiz-question" style="font-weight:bold; margin-bottom: 15px; font-size: 14px;"></p>
         <div id="quiz-options" style="width:100%; display:flex; flex-direction:column; align-items:center;"></div>
     </div>
+
     <div class="ui-overlay">
         <div id="ui-lives" style="color:#ff00ff; font-weight:bold;">❤️❤️❤️</div>
-        <div id="next-task" style="color: #ffff00; font-weight: bold;">BUSCA: ?</div>
+        <div id="ui-streak" style="color:#ffff00; font-weight:bold;">🔥 0</div>
     </div>
 </div>
 
 <script>
-// --- MOTOR DE SONIDO (MEJORADO) ---
+// --- MOTOR DE SONIDO ---
 const AudioFX = {
     ctx: new (window.AudioContext || window.webkitAudioContext)(),
     play(freq, type, duration, vol = 0.1) {
@@ -74,7 +91,7 @@ const AudioFX = {
         setTimeout(() => this.play(783, 'sine', 0.3), 200);
     },
     correct() { this.play(1000, 'sine', 0.2); },
-    wrong() { this.play(200, 'sine', 0.15, 0.1); } // Sonido mucho más suave (Pomp)
+    wrong() { this.play(200, 'sine', 0.15, 0.1); }
 };
 
 const SUPABASE_URL = "https://cqsveyvxozegcxbidvqh.supabase.co";
@@ -91,7 +108,7 @@ const config = {
 const game = new Phaser.Game(config);
 let player, enemy, letters, mazeWalls;
 let allLevels = [], currentLevelIndex = 0, currentLevel = null;
-let collectedWord = "", uiTextWord, uiTextHint, uiTextLevel, lives = 3;
+let collectedWord = "", uiTextWord, uiTextHint, uiTextLevel, lives = 3, streak = 0;
 let dpad = { up: false, down: false, left: false, right: false };
 
 function preload() {
@@ -108,18 +125,32 @@ function preload() {
 
 async function create() {
     const scene = this;
+    fetchRanking();
     try {
         const { data, error } = await supabaseClient.from('niveles').select('*').order('id', { ascending: true });
         if (error) throw error;
         allLevels = data.map(d => d.config);
     } catch (e) { console.error("Error DB:", e); }
     if (allLevels.length === 0) allLevels = [{ word: "SAID", hint: "REGLA: +1", shift: 1, maze: [[1,1,1],[1,0,1],[1,1,1]] }];
+    
     const savedLevel = localStorage.getItem('cq_current_level');
     if (savedLevel && savedLevel < allLevels.length) currentLevelIndex = parseInt(savedLevel);
+    
+    const savedStreak = localStorage.getItem('cq_streak');
+    if (savedStreak) streak = parseInt(savedStreak);
+
     loadLevel(scene);
     scene.physics.pause();
     const savedName = localStorage.getItem('cq_username');
     if (savedName) document.getElementById('username-input').value = savedName;
+}
+
+async function fetchRanking() {
+    const { data } = await supabaseClient.from('rankings').select('username, score').order('score', { ascending: false }).limit(5);
+    if (data) {
+        const list = document.getElementById('rank-list');
+        list.innerHTML = data.map((r, i) => `<div class="rank-item"><span>${i+1}. ${r.username}</span> <span>NIVEL ${r.score/100}</span></div>`).join('');
+    }
 }
 
 function showInstructions() {
@@ -140,6 +171,8 @@ function loadLevel(scene) {
     collectedWord = "";
     lives = 3;
     updateLivesUI();
+    document.getElementById('ui-streak').innerText = `🔥 ${streak}`;
+    
     if (mazeWalls) mazeWalls.clear(true, true);
     if (letters) letters.clear(true, true);
     mazeWalls = scene.physics.add.staticGroup();
@@ -173,7 +206,6 @@ function loadLevel(scene) {
     updateWordDisplay();
     uiTextHint.setText("REGLA: SALTA 1 LETRA (A->B)");
     uiTextLevel.setText(`NIVEL: ${currentLevelIndex + 1}`);
-    updateTask();
     if (!scene.cursors) { createDPad(scene); scene.cursors = scene.input.keyboard.createCursorKeys(); }
 }
 
@@ -186,11 +218,13 @@ function updateWordDisplay() {
 function handleEnemyHit() {
     AudioFX.hit();
     lives--;
+    streak = 0; localStorage.setItem('cq_streak', 0);
     updateLivesUI();
+    document.getElementById('ui-streak').innerText = `🔥 0`;
     this.cameras.main.shake(300, 0.02);
     player.setPosition(60, 200);
     enemy.setPosition(380, 200);
-    if (lives <= 0) { alert("¡SISTEMA DAÑADO! Reintentando misión..."); window.location.reload(); }
+    if (lives <= 0) { alert("¡Misión Fallida! Racha perdida."); window.location.reload(); }
 }
 
 function updateLivesUI() {
@@ -235,16 +269,15 @@ function collectLetter(p, l) {
         l.destroy();
         updateWordDisplay();
         if (collectedWord === currentLevel.word) { AudioFX.win(); showLearningPhase(); }
-        else updateTask();
-    } else { 
-        AudioFX.wrong();
-        this.cameras.main.shake(100, 0.005); 
-    }
+    } else { AudioFX.wrong(); this.cameras.main.shake(100, 0.005); }
 }
 
 function showLearningPhase() {
     game.scene.scenes[0].physics.pause();
+    streak++;
+    localStorage.setItem('cq_streak', streak);
     document.getElementById('learning-modal').style.display = 'flex';
+    document.getElementById('streak-msg').innerText = `¡RACHA DE ${streak} NIVELES! 🔥`;
     const info = currentLevel.learning;
     document.getElementById('learn-text').innerText = info.text;
     document.getElementById('quiz-question').innerText = info.question;
@@ -265,23 +298,17 @@ function checkQuiz(selected, correct) {
         document.getElementById('learning-modal').style.display = 'none';
         currentLevelIndex++;
         localStorage.setItem('cq_current_level', currentLevelIndex);
+        saveScore(); // GUARDAR PROGRESO REAL EN DB
         if (currentLevelIndex < allLevels.length) {
             loadLevel(game.scene.scenes[0]);
             game.scene.scenes[0].physics.resume();
-        } else { alert("¡Felicidades Explorador!"); saveScore(); window.location.reload(); }
-    } else { AudioFX.wrong(); alert("¡Error! Lee de nuevo el dato curioso."); }
+        } else { alert("¡Felicidades Explorador Maestro!"); window.location.reload(); }
+    } else { AudioFX.wrong(); alert("¡Analiza de nuevo!"); }
 }
 
 async function saveScore() {
     const user = localStorage.getItem('cq_username') || "Explorador";
-    await supabaseClient.from('rankings').insert([{ username: user, score: currentLevelIndex * 100 }]);
-}
-
-function updateTask() {
-    const nextChar = currentLevel.word[collectedWord.length];
-    const shift = currentLevel.shift;
-    const cipheredNext = String.fromCharCode(((nextChar.charCodeAt(0) - 65 + shift) % 26) + 65);
-    document.getElementById('next-task').innerText = `BUSCA: ${cipheredNext}`;
+    await supabaseClient.from('rankings').upsert([{ username: user, score: currentLevelIndex * 100 }], { onConflict: 'username' });
 }
 
 function createDPad(scene) {
@@ -290,13 +317,9 @@ function createDPad(scene) {
         let b = scene.add.circle(bx, by, 40, 0x00ffff, 0.1).setInteractive().setDepth(100);
         b.setStrokeStyle(2, 0x00ffff);
         scene.add.text(bx, by, symbol, { fontSize: '28px', color: '#00ffff' }).setOrigin(0.5).setDepth(101);
-        
-        // CORRECCIÓN DE BUG DE MOVIMIENTO: Resetear si el dedo se sale o suelta fuera
         const reset = () => { dpad[dir] = false; b.setAlpha(1); };
         b.on('pointerdown', () => { dpad[dir] = true; b.setAlpha(0.5); });
-        b.on('pointerup', reset);
-        b.on('pointerout', reset);
-        b.on('pointerupoutside', reset);
+        b.on('pointerup', reset); b.on('pointerout', reset); b.on('pointerupoutside', reset);
     };
     btn(x, y-60, 'up', '▲'); btn(x, y+60, 'down', '▼');
     btn(x-60, y, 'left', '◀'); btn(x+70, y, 'right', '▶');
