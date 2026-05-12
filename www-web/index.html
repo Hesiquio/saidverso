@@ -153,33 +153,6 @@
             z-index: 10;
         }
 
-        /* ===== BOTONES FLOTANTES ===== */
-        .game-btn {
-            position: absolute;
-            width: 46px; height: 46px;
-            border-radius: 50%;
-            display: flex; justify-content: center; align-items: center;
-            font-size: 18px;
-            cursor: pointer;
-            pointer-events: auto;
-            z-index: 200;
-            transition: transform 0.1s;
-        }
-        .game-btn:active { transform: scale(0.92); }
-        #pause-btn {
-            top: 16px; left: 16px;
-            background: rgba(0,255,255,0.15);
-            border: 2px solid #00ffff;
-            color: #00ffff;
-        }
-        #power-btn {
-            top: 16px; right: 16px;
-            background: rgba(255,255,0,0.15);
-            border: 2px solid #ffff00;
-            color: #ffff00;
-            box-shadow: 0 0 10px rgba(255,255,0,0.4);
-        }
-
         /* ===== TIENDA ===== */
         #shop-modal { z-index: 400; }
         #shop-title { color: #ffff00; margin-bottom: 4px; }
@@ -231,10 +204,6 @@
 <body>
 <div id="game-wrapper">
     <div id="game-container"></div>
-
-    <!-- Botones flotantes del juego -->
-    <div id="pause-btn" class="game-btn" style="display:none;" onclick="togglePause()">⏸</div>
-    <div id="power-btn" class="game-btn" style="display:none;" onclick="UI.openShop(true)">⚡</div>
 
     <!-- HUD -->
     <div class="ui-overlay" style="display:none;">
@@ -436,8 +405,7 @@
         State.isPaused = false;
         State.isScanning = false;
         document.getElementById('pause-modal').style.display = 'none';
-        document.getElementById('pause-btn').style.display  = 'none';
-        document.getElementById('power-btn').style.display  = 'none';
+        document.getElementById('pause-modal').style.display = 'none';
         document.querySelector('.ui-overlay').style.display = 'none';
         game.scene.scenes[0].physics.pause();
         UI.showDashboard();
