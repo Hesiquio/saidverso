@@ -15,6 +15,7 @@
     <script src="js/database.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/game.js"></script>
+    <script src="capacitor.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
@@ -299,6 +300,7 @@
             <button class="btn-secondary" onclick="UI.openShop()">🛒 TIENDA DE PODERES</button>
             <button class="btn-secondary" onclick="UI.openRanking()">🏆 RANKING MUNDIAL</button>
             <button class="btn-ghost" onclick="UI.logout()">CAMBIAR USUARIO</button>
+            <button class="btn-ghost" onclick="window.exitApp()" style="color:#ff3366; margin-top:10px; font-weight:bold; border: 1px solid rgba(255,51,102,0.3);">❌ SALIR DEL JUEGO</button>
         </div>
         <p class="key-hint">Moverte: <kbd>WASD</kbd> o <kbd>Flechas</kbd> | Pausar: <kbd>ESC</kbd></p>
     </div>

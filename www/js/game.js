@@ -730,13 +730,20 @@ function updateInventoryUI() {
 function updateWordDisplay() {
     const shown = collectedWord.split('').join(' ');
     const blanks = ' _ '.repeat(currentLevel.word.length - collectedWord.length).trim();
+    const fullText = `${shown} ${blanks}`.trim();
 
     // Actualizar HTML
     const levelEl = document.getElementById('ui-level-html');
     if (levelEl) levelEl.innerText = `N${State.currentLevelIndex + 1}`;
 
     const wordEl = document.getElementById('ui-word-html');
-    if (wordEl) wordEl.innerText = `${shown} ${blanks}`.trim();
+    if (wordEl) {
+        wordEl.innerText = fullText;
+        // Ajuste de fuente dinámico basado en la longitud de la cadena
+        if (fullText.length > 20) wordEl.style.fontSize = '11px';
+        else if (fullText.length > 14) wordEl.style.fontSize = '13px';
+        else wordEl.style.fontSize = '16px';
+    }
 
     let helpMsg = currentLevel.hint;
     if (collectedWord.length < currentLevel.word.length) {
@@ -750,35 +757,47 @@ function updateWordDisplay() {
     const hintEl = document.getElementById('ui-hint-html');
     if (hintEl) hintEl.innerText = helpMsg;
 
-    // Sincronizar canvas por si acaso (opcional)
-    if (uiTextWord) uiTextWord.setText(`${shown} ${blanks}`.trim());
+    // Sincronizar canvas por si acaso
+    if (uiTextWord) uiTextWord.setText(fullText);
     if (uiTextHint) uiTextHint.setText(helpMsg);
 }
 
 // ---- UI Helpers ----
 function createDPad(scene) {
-    const x = 225, y = 650; // Centered below maze, closer to bottom bar
+    const x = 225, y = 650; 
     const btn = (bx, by, dir, symbol) => {
-        let b = scene.add.circle(bx, by, 32, 0x00ffff, 0.05).setInteractive().setDepth(100);
-        b.setStrokeStyle(1.5, 0x00ffff, 0.2);
-        scene.add.text(bx, by, symbol, { fontSize: '20px', color: '#00ffff' }).setOrigin(0.5).setDepth(101).setAlpha(0.3);
-        const reset = () => { dpad[dir] = false; b.setAlpha(1); };
-        b.on('pointerdown', () => { dpad[dir] = true; b.setAlpha(0.5); });
+        // D-Pad mucho más visible y con mayor profundidad
+        let b = scene.add.circle(bx, by, 34, 0x00ffff, 0.15).setInteractive().setDepth(2000);
+        b.setStrokeStyle(2, 0x00ffff, 0.4);
+        let t = scene.add.text(bx, by, symbol, { fontSize: '24px', color: '#ffffff' }).setOrigin(0.5).setDepth(2001).setAlpha(0.8);
+        
+        const reset = () => { dpad[dir] = false; b.setAlpha(1); t.setAlpha(0.8); };
+        b.on('pointerdown', () => { dpad[dir] = true; b.setAlpha(0.5); t.setAlpha(1); });
         b.on('pointerup', reset); b.on('pointerout', reset); b.on('pointerupoutside', reset);
     };
-    btn(x, y - 50, 'up', '▲'); btn(x, y + 50, 'down', '▼');
-    btn(x - 50, y, 'left', '◀'); btn(x + 60, y, 'right', '▶');
+    btn(x, y - 55, 'up', '▲'); btn(x, y + 55, 'down', '▼');
+    btn(x - 55, y, 'left', '◀'); btn(x + 65, y, 'right', '▶');
 }
 
 // ---- Punto de entrada ----
+window.exitApp = function () {
+    if (confirm('¿Seguro que quieres salir de SaidVerso?')) {
+        // En Capacitor/Android esto cierra la app realmente
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+            window.Capacitor.Plugins.App.exitApp();
+        } else {
+            // Fallback: Si no está en modo nativo, simplemente recargamos o cerramos si es posible
+            window.location.reload();
+        }
+    }
+};
+
 window.startGame = function () {
     if (!game || !game.scene.scenes[0]) { setTimeout(window.startGame, 100); return; }
     document.getElementById('dashboard-screen').style.display = 'none';
     document.querySelector('.ui-overlay').style.display = 'flex';
-    document.getElementById('pause-btn').style.display = 'flex';
-    document.getElementById('power-btn').style.display = 'flex';
     updateInventoryUI();
-    // Recargar nivel con datos frescos de Supabase (ya sincronizados en background)
+    // Recargar nivel con datos frescos de Supabase
     loadLevel(game.scene.scenes[0]);
     startScanMode();
 };
