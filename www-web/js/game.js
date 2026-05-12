@@ -148,6 +148,7 @@ function loadLevel(scene) {
 
     if (freeSpaces.length > 0) {
         window.playerStartPos = { x: freeSpaces[0].x, y: freeSpaces[0].y };
+        window.enemyStartPos  = { x: freeSpaces[freeSpaces.length-1].x, y: freeSpaces[freeSpaces.length-1].y };
     }
 
     // Monedas y Cofre
@@ -197,15 +198,15 @@ function loadLevel(scene) {
     if (!uiTextWord) {
         uiTextWord = scene.add.text(400, 25, '', { 
             fontSize: '32px', color: '#00ffff', fontStyle: 'bold', padding: { bottom: 10 } 
-        }).setOrigin(0.5).setDepth(10);
+        }).setOrigin(0.5).setDepth(10).setScrollFactor(0);
         
         uiTextHint = scene.add.text(400, 65, '', { 
             fontSize: '16px', color: '#ff00ff', fontStyle: 'bold', backgroundColor: '#00000088', padding: { x: 10, y: 5 } 
-        }).setOrigin(0.5).setDepth(10);
+        }).setOrigin(0.5).setDepth(10).setScrollFactor(0);
         
-        countdownText = scene.add.text(400, 300, '', {
-            fontSize: '36px', color: '#ffff00', fontStyle: 'bold', backgroundColor: '#000000bb', padding: { x: 15, y: 10 }
-        }).setOrigin(0.5).setDepth(500).setVisible(false);
+        countdownText = scene.add.text(400, 110, '', {
+            fontSize: '24px', color: '#ffff00', fontStyle: 'bold', backgroundColor: '#000000bb', padding: { x: 15, y: 10 }
+        }).setOrigin(0.5).setDepth(500).setScrollFactor(0).setVisible(false);
     }
     updateWordDisplay();
 }
@@ -239,15 +240,25 @@ window.tryActivatePower = function(type) {
             if (type === 'speed') player.setTint(0x00ff99);
             AudioFX.powerup();
             
-            if (powerTimerEvent) powerTimerEvent.remove(false);
+            if (powerTimerEvent) clearInterval(powerTimerEvent);
             
-            powerTimerEvent = game.scene.scenes[0].time.delayedCall(10000, () => {
-                if (State.activePower === type) {
+            let pTime = 10;
+            if (countdownText) countdownText.setText(`${type.toUpperCase()}: ${pTime}s`).setVisible(true);
+            
+            powerTimerEvent = setInterval(() => {
+                if (State.isPaused) return;
+                pTime--;
+                
+                if (pTime <= 0 || !State.activePower) {
+                    clearInterval(powerTimerEvent);
                     State.activePower = null;
                     player.setAlpha(1);
                     player.clearTint();
+                    if (countdownText) countdownText.setVisible(false);
+                } else {
+                    if (countdownText) countdownText.setText(`${type.toUpperCase()}: ${pTime}s`).setVisible(true);
                 }
-            });
+            }, 1000);
         }
     } else {
         AudioFX.wrong();
@@ -258,7 +269,18 @@ window.tryActivatePower = function(type) {
 
 // ---- Colisiones ----
 function handleEnemyCollision() {
-    if (State.activePower === 'star') { AudioFX.win(); enemy.setActive(false).setVisible(false); return; }
+    if (State.activePower === 'star') { 
+        AudioFX.win(); 
+        enemy.disableBody(true, true); // Deshabilita física e invisibiliza
+        setTimeout(() => {
+            if (enemy && enemy.scene) {
+                const ex = window.enemyStartPos ? window.enemyStartPos.x : 400;
+                const ey = window.enemyStartPos ? window.enemyStartPos.y : 300;
+                enemy.enableBody(true, ex, ey, true, true);
+            }
+        }, 5000); // El centinela revive en 5 segundos en su base
+        return; 
+    }
     AudioFX.hit(); lives--; State.streak = 0; State.save();
     updateLivesUI();
     const el = document.getElementById('ui-streak');
