@@ -1,5 +1,5 @@
 let player, enemy, letters, mazeWalls, countdownText, coinsGroup, animalsGroup;
-let allLevels = [{ word: "HOLA", hint: "REGLA: +1", shift: 1, maze: [[1,1,1,1,1,1,1,1],[1,0,0,0,0,0,0,1],[1,0,1,1,1,1,0,1],[1,0,0,0,0,0,0,1],[1,1,1,1,1,1,1,1]], learning: {text:"¡Bienvenido!", question:"¿Qué es 1+1?", options:["2","3"], correct:0} }];
+let allLevels = [{ word: "SAID", hint: "REGLA: +1", shift: 1, maze: [[1,1,1,1,1,1,1,1],[1,0,0,0,0,0,0,1],[1,0,1,1,1,1,0,1],[1,0,0,0,0,0,0,1],[1,1,1,1,1,1,1,1]], learning: {text:"¡Bienvenido!", question:"¿Qué es 1+1?", options:["2","3"], correct:0} }];
 let currentLevel = null;
 let collectedWord = "", uiTextWord, uiTextHint, uiTextLevel, lives = 3;
 let dpad = { up: false, down: false, left: false, right: false };
@@ -9,21 +9,19 @@ let activePower = null, powerTimer = 0;
 const GameScene = {
     preload() {
         const graphics = this.make.graphics();
-        graphics.fillStyle(0x00ffff); graphics.fillRect(2, 2, 20, 20);
+        graphics.fillStyle(0x00ffff); graphics.fillRect(0, 0, 24, 24);
         graphics.generateTexture('robot', 24, 24);
         graphics.clear(); graphics.fillStyle(0xff0000); graphics.fillCircle(12, 12, 10);
         graphics.generateTexture('enemy', 24, 24);
-        graphics.clear(); graphics.fillStyle(0x1a1a2e); graphics.fillRect(0,0,40,40);
-        graphics.lineStyle(2, 0x00ffff, 0.3); graphics.strokeRect(2,2,36,36);
+        graphics.clear(); graphics.fillStyle(0x1a1a3e); graphics.fillRect(0,0,40,40); // Azul oscuro para visibilidad
+        graphics.lineStyle(2, 0x00ffff, 0.8); graphics.strokeRect(2,2,36,36);
         graphics.generateTexture('wall', 40, 40);
     },
 
     create() {
-        // 1. CARGAR NIVEL DE EMERGENCIA INMEDIATAMENTE
+        this.cameras.main.setBackgroundColor('#050515'); // Fondo azul muy oscuro
         loadLevel(this);
         this.physics.pause();
-        
-        // 2. INICIAR INTRO Y CARGA DE DB EN PARALELO
         runIntro();
         this.loadOnlineLevels();
     },
@@ -33,11 +31,7 @@ const GameScene = {
             const data = await Database.fetchLevels();
             if (data && data.length > 0) {
                 allLevels = data;
-                console.log("Niveles sincronizados:", allLevels.length);
-                // Si el nivel actual cambió, recargar discretamente
-                if (!currentLevel || allLevels[State.currentLevelIndex]) {
-                    loadLevel(game.scene.scenes[0]);
-                }
+                console.log("Niveles cargados:", allLevels.length);
             }
         } catch (e) { console.error("Error DB:", e); }
     },
@@ -58,9 +52,7 @@ const GameScene = {
 
 function loadLevel(scene) {
     if (!scene) return;
-    if (!allLevels[State.currentLevelIndex]) State.currentLevelIndex = 0;
-    currentLevel = allLevels[State.currentLevelIndex];
-    
+    currentLevel = allLevels[State.currentLevelIndex] || allLevels[0];
     collectedWord = ""; lives = 3; updateLivesUI();
     
     if (mazeWalls) mazeWalls.clear(true, true);
@@ -78,15 +70,15 @@ function loadLevel(scene) {
     });
 
     if (!player) {
-        player = scene.physics.add.sprite(60, 200, 'robot').setDepth(2);
-        enemy = scene.physics.add.sprite(380, 200, 'enemy').setDepth(2);
+        player = scene.physics.add.sprite(60, 220, 'robot').setDepth(5);
+        enemy = scene.physics.add.sprite(380, 220, 'enemy').setDepth(5);
         player.setCollideWorldBounds(true); enemy.setCollideWorldBounds(true);
         player.setBodySize(18, 18);
         scene.physics.add.collider(player, mazeWalls, null, () => activePower !== 'ghost');
         scene.physics.add.collider(enemy, mazeWalls);
         scene.physics.add.overlap(player, enemy, handleEnemyCollision, null, scene);
     } else {
-        player.setPosition(60, 200); enemy.setPosition(380, 200); enemy.setActive(true).setVisible(true);
+        player.setPosition(60, 220); enemy.setPosition(380, 220); enemy.setActive(true).setVisible(true);
         player.setAlpha(1); player.clearTint();
     }
 
@@ -97,18 +89,11 @@ function loadLevel(scene) {
     for(let i=0; i<5; i++) {
         let p = Phaser.Utils.Array.RemoveRandomElement(freeSpaces);
         if(p) {
-            let c = scene.add.text(p.x, p.y, "🪙", { fontSize: '16px' }).setOrigin(0.5);
+            let c = scene.add.text(p.x, p.y, "🪙", { fontSize: '18px' }).setOrigin(0.5).setDepth(4);
             scene.physics.add.existing(c); coinsGroup.add(c);
         }
     }
-    let pAnim = Phaser.Utils.Array.RemoveRandomElement(freeSpaces);
-    if(pAnim) {
-        let a = scene.add.text(pAnim.x, pAnim.y, "🐶", { fontSize: '20px' }).setOrigin(0.5);
-        scene.physics.add.existing(a); animalsGroup.add(a);
-    }
-
-    scene.physics.add.overlap(player, coinsGroup, collectCoin, null, scene);
-    scene.physics.add.overlap(player, animalsGroup, collectAnimal, null, scene);
+    
     letters = scene.physics.add.group();
     setupLetters(scene, freeSpaces);
     scene.physics.add.overlap(player, letters, collectLetter, null, scene);
@@ -124,6 +109,9 @@ function loadLevel(scene) {
         scene.cursors = scene.input.keyboard.createCursorKeys(); 
         scene.wasd = scene.input.keyboard.addKeys('W,A,S,D');
     }
+    
+    // Forzar foco de cámara
+    scene.cameras.main.centerOn(225, 400);
 }
 
 function checkAndActivatePower() {
@@ -141,7 +129,7 @@ function handleEnemyCollision() {
     if (activePower === 'star') { AudioFX.win(); enemy.setActive(false).setVisible(false); return; }
     AudioFX.hit(); lives--; State.streak = 0; State.save();
     updateLivesUI(); if(document.getElementById('ui-streak')) document.getElementById('ui-streak').innerText = `🔥 0`;
-    game.scene.scenes[0].cameras.main.shake(300, 0.02); player.setPosition(60, 200);
+    game.scene.scenes[0].cameras.main.shake(300, 0.02); player.setPosition(60, 220);
     if (lives <= 0) { alert("¡Misión Fallida!"); window.location.reload(); }
 }
 
