@@ -14,6 +14,32 @@
         #login-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 5, 16, 0.98); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; pointer-events: all; }
         #login-screen input { background: #1a1a2e; border: 2px solid #00ffff; color: #00ffff; padding: 15px; font-family: 'Courier Prime', monospace; font-size: 20px; margin: 20px; text-align: center; outline: none; width: 250px; }
         #login-screen button { background: #00ffff; color: #000; border: none; padding: 15px 40px; font-family: 'Courier Prime', monospace; font-weight: bold; font-size: 18px; cursor: pointer; box-shadow: 0 0 15px #00ffff; }
+        #learning-modal {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 5, 25, 0.98);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 150;
+            padding: 40px;
+            box-sizing: border-box;
+            color: #00ffff;
+            text-align: center;
+        }
+        .quiz-option {
+            background: #1a1a2e;
+            border: 1px solid #00ffff;
+            color: #00ffff;
+            padding: 10px 20px;
+            margin: 10px;
+            width: 80%;
+            max-width: 400px;
+            cursor: pointer;
+            font-family: 'Courier Prime', monospace;
+        }
+        .quiz-option:hover { background: #00ffff; color: #000; }
     </style>
 </head>
 <body>
@@ -26,6 +52,14 @@
         <input type="text" id="username-input" placeholder="NOMBRE..." maxlength="12">
         <button onclick="startGame()">INICIAR MISIÓN</button>
     </div>
+    <div id="learning-modal">
+        <h2 id="learn-title" style="color:#ffff00;">DATOS RECUPERADOS</h2>
+        <p id="learn-text" style="font-size: 16px; line-height: 1.5; margin: 20px 0; max-width: 600px;"></p>
+        <hr style="width:100%; border:0; border-top:1px solid #00ffff; margin:20px 0;">
+        <p id="quiz-question" style="font-weight:bold; margin-bottom: 20px;"></p>
+        <div id="quiz-options"></div>
+    </div>
+
     <div class="ui-overlay">
         <div id="status">DB: ONLINE</div>
         <div id="next-task" style="color: #ffff00;">BUSCA LA LETRA: ?</div>
@@ -168,17 +202,53 @@ function collectLetter(p, l) {
         l.destroy();
         uiTextWord.setText(`PALABRA: ${collectedWord}${"_ ".repeat(currentLevel.word.length - collectedWord.length)}`);
         if (collectedWord === currentLevel.word) {
-            if (currentLevelIndex < allLevels.length - 1) {
-                this.add.text(400, 300, '¡BIEN HECHO!\nSIGUIENTE NIVEL...', { fontSize: '32px', color: '#00ff00', align: 'center', backgroundColor: '#000000aa' }).setOrigin(0.5);
-                currentLevelIndex++;
-                setTimeout(() => loadLevel(this), 2000);
-            } else {
-                this.add.text(400, 300, '¡MISIÓN CUMPLIDA!', { fontSize: '40px', color: '#ffff00' }).setOrigin(0.5);
-                saveScore();
-                setTimeout(() => window.location.reload(), 5000);
-            }
+            showLearningPhase();
         } else { updateTask(); }
     } else { this.cameras.main.shake(100, 0.01); }
+}
+
+function showLearningPhase() {
+    game.scene.scenes[0].physics.pause();
+    const modal = document.getElementById('learning-modal');
+    modal.style.display = 'flex';
+    
+    const info = currentLevel.learning || { 
+        text: "¡Buen trabajo descifrando esta palabra tecnológica!",
+        question: "¿Estás listo para el siguiente reto?",
+        options: ["¡Sí!", "¡Claro!", "¡Vamos!"],
+        correct: 0
+    };
+
+    document.getElementById('learn-text').innerText = info.text;
+    document.getElementById('quiz-question').innerText = info.question;
+    
+    const optionsDiv = document.getElementById('quiz-options');
+    optionsDiv.innerHTML = "";
+    
+    info.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'quiz-option';
+        btn.innerText = opt;
+        btn.onclick = () => checkQuiz(idx, info.correct);
+        optionsDiv.appendChild(btn);
+    });
+}
+
+function checkQuiz(selected, correct) {
+    if (selected === correct) {
+        document.getElementById('learning-modal').style.display = 'none';
+        if (currentLevelIndex < allLevels.length - 1) {
+            currentLevelIndex++;
+            loadLevel(game.scene.scenes[0]);
+            game.scene.scenes[0].physics.resume();
+        } else {
+            alert("¡Misión Cumplida! Has completado todos los niveles.");
+            saveScore();
+            window.location.reload();
+        }
+    } else {
+        alert("¡Error de sistema! Intenta analizar la respuesta de nuevo.");
+    }
 }
 
 async function saveScore() {
