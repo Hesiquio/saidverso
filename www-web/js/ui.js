@@ -87,7 +87,7 @@ const UI = {
         if (name) Database.saveProfile(name, State);
 
         AudioFX.powerup();
-        if (isShopInGame) { checkAndActivatePower(); this.closeShop(); }
+        if (isShopInGame) { window.tryActivatePower(item); this.closeShop(); }
         else { document.getElementById('shop-coins-display').innerText = `Tus créditos: 🪙 ${State.coins}`; }
     },
 

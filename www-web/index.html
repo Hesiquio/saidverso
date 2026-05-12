@@ -35,13 +35,16 @@
         /* Contenedor principal: centra el canvas del juego */
         #game-wrapper {
             position: relative;
-            width: 450px;
-            height: 100vh;
-            max-height: 800px;
+            width: 800px;
+            height: 600px;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.2);
         }
 
         #game-container canvas {
             display: block;
+            width: 100% !important;
+            height: 100% !important;
         }
 
         /* ===== MODALES ===== */
@@ -275,7 +278,7 @@
             <button class="btn-secondary" onclick="UI.openRanking()">🏆 RANKING MUNDIAL</button>
             <button class="btn-ghost" onclick="UI.logout()">CAMBIAR USUARIO</button>
         </div>
-        <p class="key-hint">Controles: <kbd>↑↓←→</kbd> o <kbd>WASD</kbd></p>
+        <p class="key-hint">Mover: <kbd>WASD</kbd> / <kbd>Flechas</kbd> &nbsp;|&nbsp; Poderes: <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> (10 seg)</p>
     </div>
 
     <!-- TIENDA -->
@@ -325,8 +328,8 @@
 <script>
     const config = {
         type: Phaser.AUTO,
-        width: 450,
-        height: 800,
+        width: 800,
+        height: 600,
         parent: 'game-container',
         backgroundColor: '#050510',
         pixelArt: true,

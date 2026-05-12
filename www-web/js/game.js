@@ -57,6 +57,12 @@ class SaidVersoScene extends Phaser.Scene {
         // Teclas
         this.cursors = this.input.keyboard.createCursorKeys();
         this.wasd    = this.input.keyboard.addKeys({ up: 'W', down: 'S', left: 'A', right: 'D' });
+        this.powerKeys = this.input.keyboard.addKeys({
+            star: Phaser.Input.Keyboard.KeyCodes.ONE,
+            ghost: Phaser.Input.Keyboard.KeyCodes.TWO,
+            speed: Phaser.Input.Keyboard.KeyCodes.THREE,
+            life: Phaser.Input.Keyboard.KeyCodes.FOUR
+        });
 
         // Construir nivel
         loadLevel(this);
@@ -77,6 +83,11 @@ class SaidVersoScene extends Phaser.Scene {
 
     update() {
         if (!player || !player.active || State.isPaused || State.isScanning) return;
+
+        if (Phaser.Input.Keyboard.JustDown(this.powerKeys.star)) tryActivatePower('star');
+        if (Phaser.Input.Keyboard.JustDown(this.powerKeys.ghost)) tryActivatePower('ghost');
+        if (Phaser.Input.Keyboard.JustDown(this.powerKeys.speed)) tryActivatePower('speed');
+        if (Phaser.Input.Keyboard.JustDown(this.powerKeys.life)) tryActivatePower('life');
 
         player.setVelocity(0);
         const speed = State.activePower === 'speed' ? 300 : 180;
@@ -109,11 +120,16 @@ function loadLevel(scene) {
     letters    = scene.physics.add.group();
     coinsGroup = scene.physics.add.group();
 
+    const mazeWidth = currentLevel.maze[0].length * 40;
+    const mazeHeight = currentLevel.maze.length * 40;
+    const offsetX = (800 - mazeWidth) / 2;
+    const offsetY = (600 - mazeHeight) / 2 + 20;
+
     const freeSpaces = [];
     currentLevel.maze.forEach((row, rIdx) => {
         row.forEach((cell, cIdx) => {
-            const x = cIdx * 40 + 20;
-            const y = rIdx * 40 + 120; // Offset más arriba en escritorio
+            const x = cIdx * 40 + 20 + offsetX;
+            const y = rIdx * 40 + 20 + offsetY;
             if (cell === 1) mazeWalls.create(x, y, 'wall').setDepth(1);
             else freeSpaces.push({ x, y });
         });
@@ -134,9 +150,8 @@ function loadLevel(scene) {
         enemy.setPosition(freeSpaces[freeSpaces.length-1].x, freeSpaces[freeSpaces.length-1].y);
         enemy.setActive(true).setVisible(true);
         player.setAlpha(1); player.clearTint();
+        State.activePower = null;
     }
-
-    checkAndActivatePower();
 
     // Monedas
     for (let i = 0; i < 5; i++) {
@@ -154,29 +169,54 @@ function loadLevel(scene) {
 
     // HUD en canvas
     if (!uiTextWord) {
-        uiTextWord = scene.add.text(225, 30, '', { fontSize: '22px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(10);
-        uiTextHint = scene.add.text(225, 60, '', { fontSize: '12px', color: '#ff00ff' }).setOrigin(0.5).setDepth(10);
-        countdownText = scene.add.text(225, 380, '', {
-            fontSize: '30px', color: '#ffff00', fontStyle: 'bold', backgroundColor: '#000000bb', padding: { x: 10, y: 5 }
+        uiTextWord = scene.add.text(400, 30, '', { fontSize: '26px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(10);
+        uiTextHint = scene.add.text(400, 65, '', { fontSize: '14px', color: '#ff00ff' }).setOrigin(0.5).setDepth(10);
+        countdownText = scene.add.text(400, 300, '', {
+            fontSize: '36px', color: '#ffff00', fontStyle: 'bold', backgroundColor: '#000000bb', padding: { x: 15, y: 10 }
         }).setOrigin(0.5).setDepth(500).setVisible(false);
     }
     updateWordDisplay();
 }
 
 // ---- Poderes ----
-function checkAndActivatePower() {
-    if (!player) return;
-    State.activePower = null;
-    player.setAlpha(1); player.clearTint();
+let powerTimerEvent = null;
 
-    const inv = State.inventory;
-    if      (inv.star  > 0) { State.activePower = 'star';  inv.star--;  player.setTint(0xffff00); }
-    else if (inv.ghost > 0) { State.activePower = 'ghost'; inv.ghost--; player.setAlpha(0.4); }
-    else if (inv.speed > 0) { State.activePower = 'speed'; inv.speed--; player.setTint(0x00ff99); }
-    else if (inv.life  > 0) { lives++; inv.life--; updateLivesUI(); }
+window.tryActivatePower = function(type) {
+    if (!player || State.activePower === type) return;
+    
+    if (State.inventory[type] > 0) {
+        State.inventory[type]--;
+        State.save();
+        const username = localStorage.getItem('cq_username');
+        if (username) Database.saveProfile(username, State);
 
-    State.save();
-    if (State.activePower) AudioFX.powerup();
+        if (type === 'life') {
+            lives++;
+            updateLivesUI();
+            AudioFX.powerup();
+        } else {
+            State.activePower = type;
+            player.setAlpha(1); player.clearTint();
+            if (type === 'star') player.setTint(0xffff00);
+            if (type === 'ghost') player.setAlpha(0.4);
+            if (type === 'speed') player.setTint(0x00ff99);
+            AudioFX.powerup();
+            
+            if (powerTimerEvent) powerTimerEvent.remove(false);
+            
+            powerTimerEvent = game.scene.scenes[0].time.delayedCall(10000, () => {
+                if (State.activePower === type) {
+                    State.activePower = null;
+                    player.setAlpha(1);
+                    player.clearTint();
+                }
+            });
+        }
+    } else {
+        AudioFX.wrong();
+        const el = document.getElementById('shop-coins-display');
+        if (el) { el.innerText = "¡NO TIENES ESE PODER!"; setTimeout(()=> el.innerText = `Tus créditos: 🪙 ${State.coins}`, 2000); }
+    }
 }
 
 // ---- Colisiones ----
