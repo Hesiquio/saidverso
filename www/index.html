@@ -21,7 +21,11 @@
         }
         #game-wrapper {
             position: relative;
-            border: 4px solid #00ffff;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             background: #000;
         }
         .ui-overlay {
@@ -59,6 +63,10 @@ const config = {
     parent: 'game-container',
     backgroundColor: '#050510',
     pixelArt: true,
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH
+    },
     physics: {
         default: 'arcade',
         arcade: { debug: false }
@@ -210,11 +218,11 @@ function updateTask() {
 }
 
 function createDPad(scene) {
-    const x = 120, y = 480;
+    const x = 150, y = 450;
     const btn = (bx, by, dir, symbol) => {
-        let b = scene.add.circle(bx, by, 35, 0x00ffff, 0.1).setInteractive().setScrollFactor(0);
-        b.setStrokeStyle(2, 0x00ffff);
-        scene.add.text(bx, by, symbol, { fontSize: '24px', color: '#00ffff' }).setOrigin(0.5);
+        let b = scene.add.circle(bx, by, 45, 0x00ffff, 0.1).setInteractive().setScrollFactor(0);
+        b.setStrokeStyle(3, 0x00ffff);
+        scene.add.text(bx, by, symbol, { fontSize: '32px', color: '#00ffff' }).setOrigin(0.5);
         b.on('pointerdown', () => dpad[dir] = true);
         b.on('pointerup', () => dpad[dir] = false);
     };
