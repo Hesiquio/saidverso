@@ -3,89 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cipher Quest v2.1</title>
+    <title>Cipher Quest v3.0</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@700&display=swap');
-        
-        body {
-            margin: 0;
-            background-color: #020205;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-            font-family: 'Courier Prime', monospace;
-        }
-        #game-wrapper {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: #000;
-        }
-        .ui-overlay {
-            position: absolute;
-            top: 10px; left: 10px; width: calc(100% - 20px);
-            pointer-events: none;
-            color: #00ffff;
-            display: flex;
-            justify-content: space-between;
-            font-size: 14px;
-            text-transform: uppercase;
-        }
-        #login-screen {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(5, 5, 16, 0.98);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-            pointer-events: all;
-        }
-        #login-screen input {
-            background: #1a1a2e;
-            border: 2px solid #00ffff;
-            color: #00ffff;
-            padding: 15px;
-            font-family: 'Courier Prime', monospace;
-            font-size: 20px;
-            margin: 20px;
-            text-align: center;
-            outline: none;
-            width: 250px;
-        }
-        #login-screen button {
-            background: #00ffff;
-            color: #000;
-            border: none;
-            padding: 15px 40px;
-            font-family: 'Courier Prime', monospace;
-            font-weight: bold;
-            font-size: 18px;
-            cursor: pointer;
-            box-shadow: 0 0 15px #00ffff;
-        }
+        body { margin: 0; background: #020205; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: 'Courier Prime', monospace; }
+        #game-wrapper { position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; background: #000; }
+        .ui-overlay { position: absolute; top: 10px; left: 10px; width: calc(100% - 20px); pointer-events: none; color: #00ffff; display: flex; justify-content: space-between; font-size: 14px; text-transform: uppercase; z-index: 10; }
+        #login-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 5, 16, 0.98); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; pointer-events: all; }
+        #login-screen input { background: #1a1a2e; border: 2px solid #00ffff; color: #00ffff; padding: 15px; font-family: 'Courier Prime', monospace; font-size: 20px; margin: 20px; text-align: center; outline: none; width: 250px; }
+        #login-screen button { background: #00ffff; color: #000; border: none; padding: 15px 40px; font-family: 'Courier Prime', monospace; font-weight: bold; font-size: 18px; cursor: pointer; box-shadow: 0 0 15px #00ffff; }
     </style>
 </head>
 <body>
 
 <div id="game-wrapper">
     <div id="game-container"></div>
-    
     <div id="login-screen">
         <h1 style="color:#00ffff; text-shadow: 0 0 15px #00ffff; letter-spacing: 4px;">CIPHER QUEST</h1>
         <p style="color:#ff00ff; font-size: 12px; margin-bottom: 30px;">INTRODUCE TU NOMBRE DE AGENTE</p>
         <input type="text" id="username-input" placeholder="NOMBRE..." maxlength="12">
         <button onclick="startGame()">INICIAR MISIÓN</button>
     </div>
-
     <div class="ui-overlay">
         <div id="status">DB: ONLINE</div>
         <div id="next-task" style="color: #ffff00;">BUSCA LA LETRA: ?</div>
@@ -93,47 +33,31 @@
 </div>
 
 <script>
-// --- CONFIGURACIÓN ---
 const SUPABASE_URL = "https://cqsveyvxozegcxbidvqh.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxc3ZleXZ4b3plZ2N4YmlkdnFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1Mzg4MTcsImV4cCI6MjA5NDExNDgxN30.-wxhr3p_Sltxe37FUZzsO7h6xv0e5WOC_n6Oi-384hU";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const config = {
-    type: Phaser.AUTO,
-    width: 800,
-    height: 600,
-    parent: 'game-container',
-    backgroundColor: '#050510',
-    pixelArt: true,
-    scale: {
-        mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH
-    },
-    physics: {
-        default: 'arcade',
-        arcade: { debug: false }
-    },
+    type: Phaser.AUTO, width: 800, height: 600, parent: 'game-container', backgroundColor: '#050510', pixelArt: true,
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+    physics: { default: 'arcade', arcade: { debug: false } },
     scene: { preload, create, update }
 };
 
 const game = new Phaser.Game(config);
 
 let player, enemy, letters, mazeWalls;
-let currentLevel = null;
-let collectedWord = "";
-let uiTextWord, uiTextHint;
-let dpad = { up: false, down: false, left: false, right: false };
+let allLevels = [], currentLevelIndex = 0, currentLevel = null;
+let collectedWord = "", score = 0;
+let uiTextWord, uiTextHint, uiTextLevel, dpad = { up: false, down: false, left: false, right: false };
 
 function preload() {
     const graphics = this.make.graphics();
-    // Robot
     graphics.fillStyle(0x00ffff); graphics.fillRect(4, 4, 24, 24);
     graphics.fillStyle(0xffffff); graphics.fillRect(8, 8, 4, 4); graphics.fillRect(20, 8, 4, 4);
     graphics.generateTexture('robot', 32, 32);
-    // Enemy
     graphics.clear(); graphics.fillStyle(0xff0000); graphics.fillCircle(16, 16, 14);
     graphics.generateTexture('enemy', 32, 32);
-    // Wall
     graphics.clear(); graphics.fillStyle(0x1a1a2e); graphics.fillRect(0,0,40,40);
     graphics.lineStyle(2, 0x00ffff, 0.5); graphics.strokeRect(2,2,36,36);
     graphics.generateTexture('wall', 40, 40);
@@ -141,65 +65,17 @@ function preload() {
 
 async function create() {
     const scene = this;
-
-    // 1. Cargar Nivel
     try {
-        const { data } = await supabaseClient.from('niveles').select('*').limit(1).single();
-        currentLevel = data ? data.config : null;
-    } catch (e) { console.error(e); }
+        const { data, error } = await supabaseClient.from('niveles').select('*').order('id', { ascending: true });
+        if (error) throw error;
+        allLevels = data.map(d => d.config);
+    } catch (e) { console.error("Error DB:", e); }
 
-    if (!currentLevel) {
-        currentLevel = {
-            word: "ROBOT", hint: "CODIGO CESAR (+1)", shift: 1,
-            maze: [
-                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-                [1,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
-                [1,0,1,1,0,1,0,1,1,1,1,1,0,1,0,1,1,1,0,1],
-                [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
-                [1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,1,0,1,0,1],
-                [1,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,1],
-                [1,0,1,1,1,1,1,0,1,0,1,0,1,1,1,1,1,1,0,1],
-                [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-            ]
-        };
+    if (allLevels.length === 0) {
+        allLevels = [{ word: "ROBOT", hint: "CESAR +1", shift: 1, maze: [[1,1,1,1,1],[1,0,0,0,1],[1,1,1,1,1]] }];
     }
 
-    // 2. Laberinto
-    mazeWalls = scene.physics.add.staticGroup();
-    currentLevel.maze.forEach((row, rIdx) => {
-        row.forEach((cell, cIdx) => {
-            if (cell === 1) mazeWalls.create(cIdx * 40 + 20, rIdx * 40 + 120, 'wall');
-        });
-    });
-
-    player = scene.physics.add.sprite(60, 160, 'robot');
-    enemy = scene.physics.add.sprite(740, 160, 'enemy');
-    player.setCollideWorldBounds(true);
-    enemy.setCollideWorldBounds(true);
-
-    letters = scene.physics.add.group();
-    setupLetters(scene);
-
-    scene.physics.add.collider(player, mazeWalls);
-    scene.physics.add.collider(enemy, mazeWalls);
-    scene.physics.add.overlap(player, letters, collectLetter, null, scene);
-    scene.physics.add.overlap(player, enemy, () => window.location.reload(), null, scene);
-
-    // 3. UI - Fuente más clara (Courier Prime)
-    uiTextWord = scene.add.text(400, 45, `PALABRA: ${"_ ".repeat(currentLevel.word.length)}`, {
-        fontSize: '28px', color: '#ffffff', fontWeight: 'bold'
-    }).setOrigin(0.5);
-
-    uiTextHint = scene.add.text(400, 80, `PISTA: ${currentLevel.hint}`, {
-        fontSize: '14px', color: '#ff00ff'
-    }).setOrigin(0.5);
-
-    updateTask();
-    createDPad(scene);
-    this.cursors = this.input.keyboard.createCursorKeys();
-
-    // Pausar hasta que el usuario inicie
+    loadLevel(scene);
     scene.physics.pause();
     const savedName = localStorage.getItem('cq_username');
     if (savedName) document.getElementById('username-input').value = savedName;
@@ -207,21 +83,62 @@ async function create() {
 
 function startGame() {
     const name = document.getElementById('username-input').value.trim();
-    if (name.length < 2) return alert("¡Ingresa un nombre de agente!");
-    
+    if (name.length < 2) return alert("¡Ingresa tu nombre!");
     localStorage.setItem('cq_username', name);
     document.getElementById('login-screen').style.display = 'none';
     game.scene.scenes[0].physics.resume();
 }
 
+function loadLevel(scene) {
+    currentLevel = allLevels[currentLevelIndex];
+    collectedWord = "";
+    if (mazeWalls) mazeWalls.clear(true, true);
+    if (letters) letters.clear(true, true);
+    
+    mazeWalls = scene.physics.add.staticGroup();
+    currentLevel.maze.forEach((row, rIdx) => {
+        row.forEach((cell, cIdx) => {
+            if (cell === 1) mazeWalls.create(cIdx * 40 + 20, rIdx * 40 + 130, 'wall');
+        });
+    });
+
+    if (!player) {
+        player = scene.physics.add.sprite(60, 160, 'robot');
+        enemy = scene.physics.add.sprite(740, 160, 'enemy');
+        player.setCollideWorldBounds(true);
+        enemy.setCollideWorldBounds(true);
+        scene.physics.add.collider(player, mazeWalls);
+        scene.physics.add.collider(enemy, mazeWalls);
+        scene.physics.add.overlap(player, enemy, () => window.location.reload(), null, scene);
+    } else {
+        player.setPosition(60, 160); enemy.setPosition(740, 160);
+        scene.physics.add.collider(player, mazeWalls);
+        scene.physics.add.collider(enemy, mazeWalls);
+    }
+
+    letters = scene.physics.add.group();
+    setupLetters(scene);
+    scene.physics.add.overlap(player, letters, collectLetter, null, scene);
+
+    if (!uiTextWord) {
+        uiTextWord = scene.add.text(400, 45, "", { fontSize: '28px', color: '#ffffff', fontWeight: 'bold' }).setOrigin(0.5);
+        uiTextHint = scene.add.text(400, 80, "", { fontSize: '14px', color: '#ff00ff' }).setOrigin(0.5);
+        uiTextLevel = scene.add.text(20, 45, "", { fontSize: '14px', color: '#00ffff', fontWeight: 'bold' });
+    }
+    uiTextWord.setText(`PALABRA: ${"_ ".repeat(currentLevel.word.length)}`);
+    uiTextHint.setText(`PISTA: ${currentLevel.hint}`);
+    uiTextLevel.setText(`NIVEL: ${currentLevelIndex + 1}`);
+    updateTask();
+    if (!scene.cursors) { createDPad(scene); scene.cursors = scene.input.keyboard.createCursorKeys(); }
+}
+
 function update() {
     if (!player || !player.active) return;
     player.setVelocity(0);
-    const speed = 200;
-    if (this.cursors.left.isDown || dpad.left) player.setVelocityX(-speed);
-    else if (this.cursors.right.isDown || dpad.right) player.setVelocityX(speed);
-    if (this.cursors.up.isDown || dpad.up) player.setVelocityY(-speed);
-    else if (this.cursors.down.isDown || dpad.down) player.setVelocityY(speed);
+    if (this.cursors.left.isDown || dpad.left) player.setVelocityX(-200);
+    else if (this.cursors.right.isDown || dpad.right) player.setVelocityX(200);
+    if (this.cursors.up.isDown || dpad.up) player.setVelocityY(-200);
+    else if (this.cursors.down.isDown || dpad.down) player.setVelocityY(200);
     if (enemy.active) this.physics.moveToObject(enemy, player, 100);
 }
 
@@ -231,16 +148,13 @@ function setupLetters(scene) {
     let freeSpaces = [];
     currentLevel.maze.forEach((row, rIdx) => {
         row.forEach((cell, cIdx) => {
-            if (cell === 0) freeSpaces.push({x: cIdx * 40 + 20, y: rIdx * 40 + 120});
+            if (cell === 0) freeSpaces.push({x: cIdx * 40 + 20, y: rIdx * 40 + 130});
         });
     });
-
     word.split('').forEach((char) => {
         const ciphered = String.fromCharCode(((char.charCodeAt(0) - 65 + shift) % 26) + 65);
         let pos = Phaser.Utils.Array.RemoveRandomElement(freeSpaces) || {x:400, y:300};
-        let l = scene.add.text(pos.x, pos.y, ciphered, {
-            fontSize: '24px', color: '#ffff00', fontWeight: 'bold'
-        }).setOrigin(0.5);
+        let l = scene.add.text(pos.x, pos.y, ciphered, { fontSize: '24px', color: '#ffff00', fontWeight: 'bold' }).setOrigin(0.5);
         scene.physics.add.existing(l);
         l.setData('val', char);
         letters.add(l);
@@ -252,27 +166,25 @@ function collectLetter(p, l) {
     if (val === currentLevel.word[collectedWord.length]) {
         collectedWord += val;
         l.destroy();
-        
-        // Animación de texto
         uiTextWord.setText(`PALABRA: ${collectedWord}${"_ ".repeat(currentLevel.word.length - collectedWord.length)}`);
-        
         if (collectedWord === currentLevel.word) {
-            this.add.text(400, 300, '¡DESCIFRADO!', { fontSize: '40px', color: '#00ff00' }).setOrigin(0.5);
-            saveScore();
-            setTimeout(() => window.location.reload(), 3000);
-        } else {
-            updateTask();
-        }
-    } else {
-        this.cameras.main.shake(100, 0.01);
-    }
+            if (currentLevelIndex < allLevels.length - 1) {
+                this.add.text(400, 300, '¡BIEN HECHO!\nSIGUIENTE NIVEL...', { fontSize: '32px', color: '#00ff00', align: 'center', backgroundColor: '#000000aa' }).setOrigin(0.5);
+                currentLevelIndex++;
+                setTimeout(() => loadLevel(this), 2000);
+            } else {
+                this.add.text(400, 300, '¡MISIÓN CUMPLIDA!', { fontSize: '40px', color: '#ffff00' }).setOrigin(0.5);
+                saveScore();
+                setTimeout(() => window.location.reload(), 5000);
+            }
+        } else { updateTask(); }
+    } else { this.cameras.main.shake(100, 0.01); }
 }
 
 async function saveScore() {
     if (supabaseClient) {
-        const user = localStorage.getItem('cq_username') || "Agente_Anonimo";
-        const scoreValue = 1000; // O la lógica de puntos que prefieras
-        await supabaseClient.from('rankings').insert([{ username: user, score: scoreValue }]);
+        const user = localStorage.getItem('cq_username') || "Agente";
+        await supabaseClient.from('rankings').insert([{ username: user, score: 1000 }]);
     }
 }
 
@@ -285,7 +197,7 @@ function updateTask() {
 function createDPad(scene) {
     const x = 150, y = 450;
     const btn = (bx, by, dir, symbol) => {
-        let b = scene.add.circle(bx, by, 45, 0x00ffff, 0.1).setInteractive().setScrollFactor(0);
+        let b = scene.add.circle(bx, by, 45, 0x00ffff, 0.1).setInteractive();
         b.setStrokeStyle(3, 0x00ffff);
         scene.add.text(bx, by, symbol, { fontSize: '32px', color: '#00ffff' }).setOrigin(0.5);
         b.on('pointerdown', () => dpad[dir] = true);
