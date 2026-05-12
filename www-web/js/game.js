@@ -224,15 +224,15 @@ function loadLevel(scene) {
 
     // HUD en canvas
     if (!uiTextWord) {
-        uiTextWord = scene.add.text(400, 25, '', { 
+        uiTextWord = scene.add.text(400, 540, '', { 
             fontSize: '32px', color: '#00ffff', fontStyle: 'bold', padding: { bottom: 10 } 
         }).setOrigin(0.5).setDepth(10).setScrollFactor(0);
         
-        uiTextHint = scene.add.text(400, 65, '', { 
+        uiTextHint = scene.add.text(400, 580, '', { 
             fontSize: '16px', color: '#ff00ff', fontStyle: 'bold', backgroundColor: '#00000088', padding: { x: 10, y: 5 } 
         }).setOrigin(0.5).setDepth(10).setScrollFactor(0);
         
-        countdownText = scene.add.text(400, 110, '', {
+        countdownText = scene.add.text(400, 80, '', {
             fontSize: '24px', color: '#ffff00', fontStyle: 'bold', backgroundColor: '#000000bb', padding: { x: 15, y: 10 }
         }).setOrigin(0.5).setDepth(500).setScrollFactor(0).setVisible(false);
     }
@@ -588,7 +588,6 @@ window.startGame = function () {
     if (!game || !game.scene.scenes[0]) { setTimeout(window.startGame, 100); return; }
     document.getElementById('dashboard-screen').style.display = 'none';
     document.querySelector('.ui-overlay').style.display = 'flex';
-    document.querySelector('.ui-overlay-bottom').style.display = 'flex';
     document.getElementById('pause-btn').style.display  = 'flex';
     document.getElementById('power-btn').style.display  = 'flex';
     updateInventoryUI();

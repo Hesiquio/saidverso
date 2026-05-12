@@ -240,17 +240,13 @@
     <div id="pause-btn" class="game-btn" style="display:none;" onclick="togglePause()">⏸</div>
     <div id="power-btn" class="game-btn" style="display:none;" onclick="UI.openShop(true)">⚡</div>
 
-    <!-- HUD SUPERIOR -->
-    <div class="ui-overlay" style="display:none; flex-wrap: wrap;">
+    <!-- HUD -->
+    <div class="ui-overlay" style="display:none; align-items:center; justify-content:space-between; position:absolute; top:10px; left:0; width:calc(100% - 30px); margin-left:15px; z-index:10; pointer-events:none;">
         <div id="ui-streak" style="color:#ff00ff; font-size:18px;">🔥 0</div>
-        <div id="ui-coins-game" style="color:#ffff00; font-size:18px;">🪙 0</div>
-    </div>
-
-    <!-- HOTBAR INFERIOR (Inventario) -->
-    <div class="ui-overlay-bottom" style="display:none; position:absolute; bottom:15px; width:100%; justify-content:center; z-index:10; pointer-events:none;">
-        <div id="ui-inventory" style="background:rgba(0,255,255,0.1); border:1px solid rgba(0,255,255,0.3); padding:10px 20px; border-radius:12px; color:#00ff99; pointer-events:auto; font-size:16px;">
+        <div id="ui-inventory" style="background:rgba(0,255,255,0.1); border:1px solid rgba(0,255,255,0.3); padding:8px 16px; border-radius:12px; color:#00ff99; pointer-events:auto; font-size:16px;">
             ❤️0  ⭐0  👻0  ⚡0  🔑0  👁️0
         </div>
+        <div id="ui-coins-game" style="color:#ffff00; font-size:18px;">🪙 0</div>
     </div>
 
     <!-- INTRO -->
@@ -407,7 +403,6 @@
         document.getElementById('pause-btn').style.display  = 'none';
         document.getElementById('power-btn').style.display  = 'none';
         document.querySelector('.ui-overlay').style.display = 'none';
-        document.querySelector('.ui-overlay-bottom').style.display = 'none';
         game.scene.scenes[0].physics.pause();
         UI.showDashboard();
     }
