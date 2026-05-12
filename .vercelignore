@@ -1,0 +1,15 @@
+# Ignorar carpetas de desarrollo móvil
+android/
+ios/
+capacitor.config.json
+
+# Ignorar archivos de backend/configuración de base de datos
+setup.sql
+populate_levels.js
+.env
+
+# Ignorar dependencias de Node
+node_modules/
+package-lock.json
+
+# Solo permitiremos que Vercel vea la carpeta 'www' y el config
