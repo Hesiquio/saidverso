@@ -1,7 +1,5 @@
 {
   "public": true,
   "cleanUrls": true,
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/www/$1" }
-  ]
+  "rootDirectory": "www-web"
 }

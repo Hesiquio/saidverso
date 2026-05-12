@@ -16,7 +16,6 @@ const UI = {
     showDashboard() {
         let name = localStorage.getItem('cq_username');
         if (!name || name === "EXPLORADOR") {
-            // Si no hay nombre, creamos uno temporal para el ranking
             name = "EXPLORADOR_" + Math.floor(Math.random()*999);
             localStorage.setItem('cq_username', name);
         }
@@ -29,17 +28,7 @@ const UI = {
         document.getElementById('dash-coins').innerText = `🪙 ${State.coins}`;
         document.getElementById('motivational-phrase').innerText = `"${phrases[Math.floor(Math.random()*phrases.length)]}"`;
         
-        const badges = document.getElementById('dash-badges');
-        if(badges) {
-            badges.innerHTML = "";
-            if (State.currentLevelIndex >= 0) badges.innerHTML += '<span class="badge">🎖️ NOVATO</span>';
-            if (State.currentLevelIndex >= 10) badges.innerHTML += '<span class="badge">🚀 EXPERTO</span>';
-            if (State.currentLevelIndex >= 50) badges.innerHTML += '<span class="badge">🔮 MAESTRO</span>';
-        }
-
-        // Guardar inmediatamente para asegurar presencia en el ranking
         Database.saveScore(name, State.currentLevelIndex, State.streak, State.coins);
-
         if (Math.random() > 0.8) this.showHealthTip();
     },
 
@@ -47,7 +36,7 @@ const UI = {
         isShopInGame = inGame;
         if (inGame) {
             game.scene.scenes[0].physics.pause();
-            isPaused = true;
+            State.isPaused = true;
             document.getElementById('shop-title').innerText = "MENÚ TÁCTICO";
             document.getElementById('shop-close-btn').innerText = "VOLVER AL NIVEL";
         } else {
@@ -61,8 +50,8 @@ const UI = {
     closeShop() {
         document.getElementById('shop-modal').style.display = 'none';
         if (isShopInGame) {
-            isPaused = false;
-            if (!isScanning) game.scene.scenes[0].physics.resume();
+            State.isPaused = false;
+            if (!State.isScanning) game.scene.scenes[0].physics.resume();
         }
     },
 
@@ -73,18 +62,15 @@ const UI = {
             State.save();
             AudioFX.powerup();
             
-            // Si es en juego, activar inmediatamente el primer poder comprado
             if (isShopInGame) {
-                checkAndActivatePower(); // Llamada al motor de juego
+                checkAndActivatePower(); 
                 this.closeShop();
-                alert("¡PODER ACTIVADO!");
             } else {
                 this.openShop(false);
-                alert("¡Poder adquirido! Úsalo en tu próxima misión.");
             }
         } else {
             AudioFX.wrong();
-            alert("¡Necesitas más créditos! Recógelos en el laberinto.");
+            alert("¡Necesitas más créditos!");
         }
     },
 
@@ -113,7 +99,6 @@ const UI = {
 
     showFarewell() {
         document.getElementById('dashboard-screen').style.display = 'none';
-        document.getElementById('farewell-screen').style.display = 'flex';
         let i = 0;
         const interval = setInterval(() => {
             if(i < 3) {

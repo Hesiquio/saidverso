@@ -3,17 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SaidVerso v5.1</title>
-    
+    <title>SaidVerso v5.1.6</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <script src="js/state.js"></script>
     <script src="js/audio.js"></script>
     <script src="js/database.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/game.js"></script>
-
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@700&display=swap');
         body { margin: 0; background: #020205; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: 'Courier Prime', monospace; }
@@ -22,46 +19,33 @@
         .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 5, 25, 0.98); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; padding: 20px; box-sizing: border-box; color: #00ffff; text-align: center; }
         input { background: #1a1a2e; border: 2px solid #00ffff; color: #00ffff; padding: 15px; font-family: 'Courier Prime', monospace; font-size: 18px; margin: 10px; text-align: center; outline: none; width: 80%; }
         button { background: #00ffff; color: #000; border: none; padding: 12px 25px; font-family: 'Courier Prime', monospace; font-weight: bold; font-size: 14px; cursor: pointer; box-shadow: 0 0 15px #00ffff; margin-top: 10px; text-transform: uppercase; }
-        
         #intro-screen { z-index: 500; background: #000; transition: opacity 1s; }
         .boot-line { font-size: 10px; color: #00ff00; width: 100%; text-align: left; padding-left: 20px; opacity: 0.7; }
         #dashboard-screen { background: radial-gradient(circle, #0a0a2e 0%, #020205 100%); }
         .stat-card { background: rgba(0, 255, 255, 0.05); border: 1px solid #00ffff; padding: 10px; width: 85%; margin: 5px 0; border-radius: 8px; }
-        .badge { display: inline-block; padding: 5px 10px; background: #ffff00; color: #000; font-size: 10px; border-radius: 3px; margin: 5px; font-weight: bold; }
-        
-        /* Botones de Juego */
         .game-btn { position: absolute; width: 50px; height: 50px; background: rgba(0,255,255,0.2); border: 2px solid #00ffff; color: #00ffff; border-radius: 50%; font-size: 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; pointer-events: auto; z-index: 200; }
         #pause-btn { bottom: 20px; left: 20px; }
         #power-btn { bottom: 20px; right: 20px; border-color: #ffff00; color: #ffff00; box-shadow: 0 0 10px #ffff00; }
-        
         .phrase { font-style: italic; font-size: 12px; color: #ff00ff; margin: 15px 0; }
         .shop-item { background: rgba(0,255,255,0.1); border: 1px solid #00ffff; padding: 10px; margin: 5px; width: 90%; display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
         .quiz-option { background: #1a1a2e; border: 1px solid #00ffff; color: #00ffff; padding: 12px; margin: 8px; width: 90%; cursor: pointer; font-family: 'Courier Prime', monospace; }
     </style>
 </head>
 <body>
-
 <div id="game-wrapper">
     <div id="game-container"></div>
-    
     <div id="pause-btn" class="game-btn" style="display:none;" onclick="togglePause()">⏸</div>
     <div id="power-btn" class="game-btn" style="display:none;" onclick="UI.openShop(true)">⚡</div>
-
-    <!-- INTRO -->
     <div id="intro-screen" class="modal">
         <div id="boot-log" style="height: 150px; overflow: hidden; width: 100%; margin-bottom: 30px;"></div>
         <h1 id="intro-logo" style="color:#00ffff; font-size: 40px; opacity: 0; text-shadow: 0 0 20px #00ffff;">SAIDVERSO</h1>
-        <p id="intro-sub" style="color:#ff00ff; opacity: 0;">SISTEMA OPERATIVO v5.1</p>
+        <p id="intro-sub" style="color:#ff00ff; opacity: 0;">SISTEMA OPERATIVO v5.1.6</p>
     </div>
-
-    <!-- LOGIN -->
     <div id="login-screen" class="modal" style="display:none;">
         <h1 style="color:#00ffff; margin-bottom: 20px;">IDENTIFICACIÓN</h1>
         <input type="text" id="username-input" placeholder="TU NOMBRE" maxlength="12">
         <button onclick="UI.showDashboard()">ENTRAR AL SISTEMA</button>
     </div>
-
-    <!-- DASHBOARD -->
     <div id="dashboard-screen" class="modal" style="display:none;">
         <h2 id="dash-welcome" style="color:#00ffff; margin-top: 0;">HOLA, EXPLORADOR</h2>
         <div class="phrase" id="motivational-phrase"></div>
@@ -73,13 +57,7 @@
         <button style="font-size: 18px; padding: 15px 35px; width:85%;" onclick="startGame()">¡INICIAR EXPLORACIÓN!</button>
         <button style="background:#ffff00; color:#000; width:85%;" onclick="UI.openShop()">🛒 TIENDA DE PODERES</button>
         <button style="background:none; border:1px solid #ffff00; color:#ffff00; width:85%; font-size:10px;" onclick="UI.openRanking()">🏆 RANKING MUNDIAL</button>
-        <div style="display:flex; gap:10px; margin-top:15px;">
-            <button style="background: none; border: 1px solid #ff00ff; color:#ff00ff; font-size: 10px;" onclick="document.getElementById('dashboard-screen').style.display='none'; document.getElementById('login-screen').style.display='flex';">USUARIO</button>
-            <button style="background: #ff0000; color:white; font-size: 10px;" onclick="UI.showFarewell()">SALIR</button>
-        </div>
     </div>
-
-    <!-- TIENDA -->
     <div id="shop-modal" class="modal" style="display:none; z-index: 400;">
         <h2 id="shop-title" style="color:#ffff00;">TIENDA DE PODERES</h2>
         <div id="shop-coins-display" style="color:#00ffff; margin-bottom:10px;">Tus créditos: 🪙 0</div>
@@ -91,59 +69,32 @@
         </div>
         <button id="shop-close-btn" onclick="UI.closeShop()" style="margin-top:20px; background:#ff00ff; color:white;">VOLVER</button>
     </div>
-
-    <!-- SALUD DIGITAL -->
-    <div id="health-modal" class="modal" style="display:none; z-index: 2000;">
-        <h2 style="color:#00ff00;">🔔 PAUSA SALUDABLE</h2>
-        <p id="health-tip" style="font-size: 16px; line-height: 1.5;"></p>
-        <button onclick="UI.closeHealthTip()">CONTINUAR</button>
-    </div>
-
-    <div id="ranking-modal" class="modal" style="display:none; z-index: 400;">
-        <h2 style="color:#ffff00;">HALL OF FAME</h2>
-        <div id="global-rank-list" style="width:100%; max-height: 50vh; overflow-y: auto; margin: 15px 0;"></div>
-        <button onclick="document.getElementById('ranking-modal').style.display='none'">VOLVER</button>
-    </div>
-
-    <div id="learning-modal" class="modal" style="display:none; z-index: 150;">
-        <h2 id="learn-title" style="color:#ffff00;">¡ÉXITO!</h2>
-        <div id="streak-msg" style="color:#ff00ff; font-weight:bold; margin-bottom:10px;"></div>
-        <p id="learn-text" style="font-size: 14px; margin: 10px 0;"></p>
-        <hr style="width:100%; border:0; border-top:1px solid #00ffff; margin:15px 0;">
-        <p id="quiz-question" style="font-weight:bold; margin-bottom: 15px; font-size: 14px;"></p>
-        <div id="quiz-options" style="width:100%; display:flex; flex-direction:column; align-items:center;"></div>
-    </div>
-
     <div id="pause-modal" class="modal" style="display:none; z-index: 300;">
         <h2 style="color:#00ffff;">PAUSA TÁCTICA</h2>
         <button onclick="togglePause()">REANUDAR</button>
         <button style="background:#ff00ff; color:#fff;" onclick="goToMainMenu()">MENÚ PRINCIPAL</button>
     </div>
-
     <div class="ui-overlay" style="display:none;">
         <div id="ui-lives" style="color:#ff00ff; font-weight:bold;">❤️❤️❤️</div>
         <div id="ui-coins-game" style="color:#ffff00; font-weight:bold;">🪙 0</div>
     </div>
 </div>
-
 <script>
     const config = {
         type: Phaser.AUTO, width: 450, height: 800, parent: 'game-container', backgroundColor: '#050510', pixelArt: true,
         scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
         physics: { default: 'arcade', arcade: { debug: false } },
-        scene: GameScene
+        scene: SaidVersoScene
     };
     const game = new Phaser.Game(config);
-
     function togglePause() {
-        isPaused = !isPaused;
-        const modal = document.getElementById('pause-modal');
-        if (isPaused) { modal.style.display = 'flex'; game.scene.scenes[0].physics.pause(); }
-        else { modal.style.display = 'none'; if (!isScanning) game.scene.scenes[0].physics.resume(); }
+        State.isPaused = !State.isPaused;
+        const m = document.getElementById('pause-modal');
+        if (State.isPaused) { m.style.display = 'flex'; game.scene.scenes[0].physics.pause(); }
+        else { m.style.display = 'none'; if (!State.isScanning) game.scene.scenes[0].physics.resume(); }
     }
-
     function goToMainMenu() {
-        isPaused = false; isScanning = false;
+        State.isPaused = false; State.isScanning = false;
         document.getElementById('pause-modal').style.display = 'none';
         document.getElementById('pause-btn').style.display = 'none';
         document.getElementById('power-btn').style.display = 'none';

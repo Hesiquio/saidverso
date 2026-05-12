@@ -1,62 +1,55 @@
 let player, enemy, letters, mazeWalls, countdownText, coinsGroup, animalsGroup;
-let allLevels = [{ word: "HOLA", hint: "REGLA: +1", shift: 1, maze: [[1,1,1,1,1,1,1,1],[1,0,0,0,0,0,0,1],[1,0,1,1,1,1,0,1],[1,0,0,0,0,0,0,1],[1,1,1,1,1,1,1,1]], learning: {text:"¡Bienvenido!", question:"¿Qué es 1+1?", options:["2","3"], correct:0} }];
+let allLevels = [{ word: "SAID", hint: "REGLA: +1", shift: 1, maze: [[1,1,1,1,1,1,1,1],[1,0,0,0,0,0,0,1],[1,0,1,1,1,1,0,1],[1,0,0,0,0,0,0,1],[1,1,1,1,1,1,1,1]], learning: {text:"¡Bienvenido!", question:"¿Qué es 1+1?", options:["2","3"], correct:0} }];
 let currentLevel = null;
 let collectedWord = "", uiTextWord, uiTextHint, uiTextLevel, lives = 3;
 let dpad = { up: false, down: false, left: false, right: false };
-let isPaused = false, isScanning = true;
-let activePower = null, powerTimer = 0;
 
-const GameScene = {
-    preload() {
-        // No cargamos texturas externas por ahora para asegurar compatibilidad total
-    },
+class SaidVersoScene extends Phaser.Scene {
+    constructor() { super('GameScene'); }
+    preload() {}
 
     create() {
-        this.cameras.main.setBackgroundColor('#0a0a2a');
-        
-        // Crear texturas básicas con rectángulos simples
-        const robotG = this.add.graphics();
-        robotG.fillStyle(0x00ffff); robotG.fillRect(0, 0, 24, 24);
-        robotG.generateTexture('robot', 24, 24);
-        robotG.destroy();
-
-        const wallG = this.add.graphics();
-        wallG.fillStyle(0x1a1a3e); wallG.fillRect(0, 0, 40, 40);
-        wallG.lineStyle(2, 0x00ffff, 0.5); wallG.strokeRect(2, 2, 36, 36);
-        wallG.generateTexture('wall', 40, 40);
-        wallG.destroy();
-
-        const enemyG = this.add.graphics();
-        enemyG.fillStyle(0xff0000); enemyG.fillCircle(12, 12, 10);
-        enemyG.generateTexture('enemy', 24, 24);
-        enemyG.destroy();
-
+        this.cameras.main.setBackgroundColor('#050510');
+        this.createTextures();
         loadLevel(this);
         this.physics.pause();
         runIntro();
-        this.loadOnlineLevels();
-    },
+        this.syncLevels();
+    }
 
-    async loadOnlineLevels() {
+    createTextures() {
+        const g = this.add.graphics();
+        g.fillStyle(0x00ffff); g.fillRect(0, 0, 24, 24); g.generateTexture('robot', 24, 24);
+        g.clear(); g.fillStyle(0xff0000); g.fillCircle(12, 12, 10); g.generateTexture('enemy', 24, 24);
+        g.clear(); g.fillStyle(0x1a1a2e); g.fillRect(0,0,40,40); g.lineStyle(2, 0x00ffff, 0.3); g.strokeRect(2,2,36,36); g.generateTexture('wall', 40, 40);
+        g.destroy();
+    }
+
+    async syncLevels() {
         try {
             const data = await Database.fetchLevels();
             if (data && data.length > 0) allLevels = data;
-        } catch (e) { console.error("Error DB:", e); }
-    },
+        } catch (e) { console.error("Sync Error:", e); }
+    }
 
     update() {
-        if (!player || !player.active || isPaused || isScanning) return;
+        if (!player || !player.active || State.isPaused || State.isScanning) return;
         player.setVelocity(0); 
-        let speed = (activePower === 'speed') ? 300 : 180;
-        const cursors = this.cursors; const wasd = this.wasd;
-        if (cursors.left.isDown || wasd.A.isDown || dpad.left) player.setVelocityX(-speed);
-        else if (cursors.right.isDown || wasd.D.isDown || dpad.right) player.setVelocityX(speed);
-        if (cursors.up.isDown || wasd.W.isDown || dpad.up) player.setVelocityY(-speed);
-        else if (cursors.down.isDown || wasd.S.isDown || dpad.down) player.setVelocityY(speed);
-        if (enemy.active && activePower !== 'star') this.physics.moveToObject(enemy, player, 80);
-        else if (activePower === 'star') enemy.setVelocity(0);
+        let speed = (State.activePower === 'speed') ? 300 : 180;
+        
+        if (this.input.keyboard) {
+            const c = this.input.keyboard.createCursorKeys();
+            const w = this.input.keyboard.addKeys('W,A,S,D');
+            if (c.left.isDown || w.A.isDown || dpad.left) player.setVelocityX(-speed);
+            else if (c.right.isDown || w.D.isDown || dpad.right) player.setVelocityX(speed);
+            if (c.up.isDown || w.W.isDown || dpad.up) player.setVelocityY(-speed);
+            else if (c.down.isDown || w.S.isDown || dpad.down) player.setVelocityY(speed);
+        }
+
+        if (enemy.active && State.activePower !== 'star') this.physics.moveToObject(enemy, player, 80);
+        else if (State.activePower === 'star') enemy.setVelocity(0);
     }
-};
+}
 
 function loadLevel(scene) {
     if (!scene) return;
@@ -72,11 +65,8 @@ function loadLevel(scene) {
     let freeSpaces = [];
     currentLevel.maze.forEach((row, rIdx) => {
         row.forEach((cell, cIdx) => {
-            if (cell === 1) {
-                mazeWalls.create(cIdx * 40 + 20, rIdx * 40 + 160, 'wall').setDepth(1);
-            } else {
-                freeSpaces.push({x: cIdx * 40 + 20, y: rIdx * 40 + 160});
-            }
+            if (cell === 1) mazeWalls.create(cIdx * 40 + 20, rIdx * 40 + 160, 'wall').setDepth(1);
+            else freeSpaces.push({x: cIdx * 40 + 20, y: rIdx * 40 + 160});
         });
     });
 
@@ -85,7 +75,7 @@ function loadLevel(scene) {
         enemy = scene.physics.add.sprite(380, 220, 'enemy').setDepth(5);
         player.setCollideWorldBounds(true); enemy.setCollideWorldBounds(true);
         player.setBodySize(18, 18);
-        scene.physics.add.collider(player, mazeWalls, null, () => activePower !== 'ghost');
+        scene.physics.add.collider(player, mazeWalls, null, () => State.activePower !== 'ghost');
         scene.physics.add.collider(enemy, mazeWalls);
         scene.physics.add.overlap(player, enemy, handleEnemyCollision, null, scene);
     } else {
@@ -115,29 +105,23 @@ function loadLevel(scene) {
         countdownText = scene.add.text(225, 400, "", { fontSize: '32px', color: '#ffff00', fontWeight: 'bold', backgroundColor: '#000000aa' }).setOrigin(0.5).setDepth(500);
     }
     updateWordDisplay();
-    if (!scene.cursors) { 
-        createDPad(scene); 
-        scene.cursors = scene.input.keyboard.createCursorKeys(); 
-        scene.wasd = scene.input.keyboard.addKeys('W,A,S,D');
-    }
-    
-    // Test Visual: Si ves esto, el juego está dibujando
-    scene.add.circle(225, 400, 5, 0xffffff, 0.5).setDepth(100);
+    if (!scene.cursors) createDPad(scene);
 }
 
 function checkAndActivatePower() {
     if (!player) return;
-    if (State.inventory.star > 0) { activePower = 'star'; State.inventory.star--; player.setTint(0xffff00); }
-    else if (State.inventory.ghost > 0) { activePower = 'ghost'; State.inventory.ghost--; player.setAlpha(0.5); }
-    else if (State.inventory.speed > 0) { activePower = 'speed'; State.inventory.speed--; player.setTint(0x00ff00); }
+    State.activePower = null;
+    if (State.inventory.star > 0) { State.activePower = 'star'; State.inventory.star--; player.setTint(0xffff00); }
+    else if (State.inventory.ghost > 0) { State.activePower = 'ghost'; State.inventory.ghost--; player.setAlpha(0.5); }
+    else if (State.inventory.speed > 0) { State.activePower = 'speed'; State.inventory.speed--; player.setTint(0x00ff00); }
     else if (State.inventory.life > 0) { lives++; State.inventory.life--; updateLivesUI(); }
-    else { activePower = null; player.setAlpha(1); player.clearTint(); }
+    else { player.setAlpha(1); player.clearTint(); }
     State.save();
-    if (activePower) AudioFX.powerup();
+    if (State.activePower) AudioFX.powerup();
 }
 
 function handleEnemyCollision() {
-    if (activePower === 'star') { AudioFX.win(); enemy.setActive(false).setVisible(false); return; }
+    if (State.activePower === 'star') { AudioFX.win(); enemy.setActive(false).setVisible(false); return; }
     AudioFX.hit(); lives--; State.streak = 0; State.save();
     updateLivesUI(); if(document.getElementById('ui-streak')) document.getElementById('ui-streak').innerText = `🔥 0`;
     game.scene.scenes[0].cameras.main.shake(300, 0.02); player.setPosition(60, 220);
@@ -215,7 +199,7 @@ function createDPad(scene) {
 }
 
 function startScanMode() {
-    isScanning = true; const scene = game.scene.scenes[0]; scene.physics.pause();
+    State.isScanning = true; const scene = game.scene.scenes[0]; scene.physics.pause();
     let count = 3; countdownText.setText(`ESCANEANDO... ${count}`).setColor('#ffff00').setVisible(true);
     scene.time.addEvent({
         delay: 1000, repeat: 3,
@@ -223,7 +207,7 @@ function startScanMode() {
             count--;
             if (count > 0) countdownText.setText(`ESCANEANDO... ${count}`);
             else if (count === 0) countdownText.setText("¡EXPLORA!").setColor('#00ff00');
-            else { countdownText.setVisible(false); isScanning = false; if (!isPaused) scene.physics.resume(); }
+            else { countdownText.setVisible(false); State.isScanning = false; if (!State.isPaused) scene.physics.resume(); }
         }
     });
 }
@@ -263,9 +247,7 @@ window.startGame = function() {
     document.getElementById('dashboard-screen').style.display = 'none';
     const overlay = document.querySelector('.ui-overlay');
     if (overlay) overlay.style.display = 'flex';
-    const pauseBtn = document.getElementById('pause-btn');
-    if (pauseBtn) pauseBtn.style.display = 'flex';
-    const powerBtn = document.getElementById('power-btn');
-    if (powerBtn) powerBtn.style.display = 'flex';
+    const pBtn = document.getElementById('pause-btn'); if (pBtn) pBtn.style.display = 'flex';
+    const pwBtn = document.getElementById('power-btn'); if (pwBtn) pwBtn.style.display = 'flex';
     startScanMode();
 };

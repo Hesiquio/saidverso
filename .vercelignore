@@ -1,15 +1,21 @@
-# Ignorar carpetas de desarrollo móvil
+# Carpetas de Android/iOS — no van a Vercel
 android/
 ios/
+
+# Carpeta móvil — Vercel usa www-web/
+www/
+
+# Config de Capacitor
+capacitor.config.ts
 capacitor.config.json
 
-# Ignorar archivos de backend/configuración de base de datos
-setup.sql
-populate_levels.js
-.env
+# SQL y scripts de base de datos
+*.sql
+supabase/
 
-# Ignorar dependencias de Node
+# Dependencias locales
 node_modules/
-package-lock.json
 
-# Solo permitiremos que Vercel vea la carpeta 'www' y el config
+# Variables de entorno
+.env
+.env.*

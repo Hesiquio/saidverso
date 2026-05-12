@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SaidVerso — Explorador Criptográfico</title>
+    <meta name="description" content="SaidVerso: el juego educativo de criptografía para niños. Descifra palabras, rescata animales y aprende a proteger tu información.">
+
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Módulos del juego — ORDEN CRÍTICO -->
+    <script src="js/state.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/database.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #020208;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Courier Prime', monospace;
+            color: #00ffff;
+        }
+
+        /* Contenedor principal: centra el canvas del juego */
+        #game-wrapper {
+            position: relative;
+            width: 450px;
+            height: 100vh;
+            max-height: 800px;
+        }
+
+        #game-container canvas {
+            display: block;
+        }
+
+        /* ===== MODALES ===== */
+        .modal {
+            position: absolute;
+            inset: 0;
+            background: rgba(4, 4, 22, 0.97);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 24px;
+            text-align: center;
+        }
+
+        /* ===== INPUTS & BUTTONS ===== */
+        input {
+            background: #0d1b3e;
+            border: 1.5px solid #00ffff;
+            color: #00ffff;
+            padding: 12px 16px;
+            font-family: inherit;
+            font-size: 16px;
+            text-align: center;
+            outline: none;
+            width: 80%;
+            margin: 8px 0;
+            letter-spacing: 2px;
+        }
+
+        button {
+            background: #00ffff;
+            color: #000;
+            border: none;
+            padding: 11px 22px;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 0 12px rgba(0,255,255,0.5);
+            margin-top: 8px;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        button:active { transform: scale(0.97); box-shadow: 0 0 6px rgba(0,255,255,0.3); }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1.5px solid #ffff00;
+            color: #ffff00;
+            box-shadow: 0 0 8px rgba(255,255,0,0.3);
+            width: 85%;
+        }
+        .btn-ghost {
+            background: transparent;
+            border: 1.5px solid rgba(0,255,255,0.3);
+            color: rgba(0,255,255,0.6);
+            box-shadow: none;
+            font-size: 11px;
+            width: 85%;
+        }
+
+        /* ===== INTRO ===== */
+        #intro-screen { z-index: 500; background: #000; transition: opacity 0.9s; }
+        #boot-log { height: 120px; overflow: hidden; width: 100%; margin-bottom: 24px; }
+        .boot-line { font-size: 10px; color: #00ff00; text-align: left; padding: 2px 16px; opacity: 0.8; }
+        #intro-logo { color: #00ffff; font-size: 44px; opacity: 0; text-shadow: 0 0 24px #00ffff; margin-bottom: 6px; transition: opacity 0.5s; }
+        #intro-sub   { color: #ff00ff; font-size: 13px; opacity: 0; letter-spacing: 3px; transition: opacity 0.5s; }
+
+        /* ===== DASHBOARD ===== */
+        #dashboard-screen { background: radial-gradient(ellipse at top, #0a0a2e 0%, #020208 70%); }
+        #dash-welcome { color: #00ffff; font-size: 20px; margin-bottom: 4px; }
+        .phrase { font-style: italic; font-size: 12px; color: #ff00ff; margin-bottom: 16px; opacity: 0.8; }
+        .stats-row { display: flex; gap: 8px; width: 90%; justify-content: center; margin-bottom: 16px; }
+        .stat-card {
+            flex: 1;
+            background: rgba(0,255,255,0.04);
+            border: 1px solid rgba(0,255,255,0.3);
+            border-radius: 6px;
+            padding: 10px 6px;
+            text-align: center;
+        }
+        .stat-label { font-size: 8px; color: #ffff00; letter-spacing: 1px; margin-bottom: 4px; }
+        .stat-value { font-size: 18px; font-weight: 700; }
+        .dash-actions { display: flex; flex-direction: column; align-items: center; width: 100%; gap: 0; }
+        .dash-actions button { width: 85%; }
+
+        /* Hint de controles */
+        .key-hint { font-size: 10px; color: rgba(0,255,255,0.4); margin-top: 16px; letter-spacing: 1px; }
+        .key-hint kbd {
+            background: rgba(0,255,255,0.1);
+            border: 1px solid rgba(0,255,255,0.3);
+            border-radius: 3px;
+            padding: 1px 5px;
+            font-family: inherit;
+        }
+
+        /* ===== HUD DEL JUEGO ===== */
+        .ui-overlay {
+            position: absolute;
+            top: 8px; left: 10px;
+            width: calc(100% - 20px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+            z-index: 10;
+            font-size: 13px;
+        }
+
+        /* ===== BOTONES FLOTANTES ===== */
+        .game-btn {
+            position: absolute;
+            width: 46px; height: 46px;
+            border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 18px;
+            cursor: pointer;
+            pointer-events: auto;
+            z-index: 200;
+            transition: transform 0.1s;
+        }
+        .game-btn:active { transform: scale(0.92); }
+        #pause-btn {
+            bottom: 16px; left: 16px;
+            background: rgba(0,255,255,0.15);
+            border: 2px solid #00ffff;
+            color: #00ffff;
+        }
+        #power-btn {
+            bottom: 16px; right: 16px;
+            background: rgba(255,255,0,0.15);
+            border: 2px solid #ffff00;
+            color: #ffff00;
+            box-shadow: 0 0 10px rgba(255,255,0,0.4);
+        }
+
+        /* ===== TIENDA ===== */
+        #shop-modal { z-index: 400; }
+        #shop-title { color: #ffff00; margin-bottom: 4px; }
+        .shop-item {
+            background: rgba(0,255,255,0.06);
+            border: 1px solid rgba(0,255,255,0.25);
+            padding: 10px 14px;
+            margin: 4px 0;
+            width: 92%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+        .shop-item button { margin: 0; padding: 6px 14px; font-size: 11px; }
+
+        /* ===== SALUD ===== */
+        #health-modal { z-index: 2000; background: rgba(0, 20, 0, 0.97); }
+        #health-tip { font-size: 15px; line-height: 1.6; max-width: 340px; margin: 16px 0; }
+
+        /* ===== QUIZ ===== */
+        #learning-modal { z-index: 150; }
+        #streak-msg { color: #ff00ff; font-weight: 700; margin: 8px 0; }
+        #learn-text { font-size: 13px; margin: 8px 0; line-height: 1.5; max-width: 340px; }
+        hr.divider { width: 100%; border: 0; border-top: 1px solid rgba(0,255,255,0.2); margin: 14px 0; }
+        #quiz-question { font-weight: 700; font-size: 14px; margin-bottom: 12px; }
+        .quiz-option {
+            background: #0d1b3e;
+            border: 1.5px solid #00ffff;
+            color: #00ffff;
+            padding: 11px;
+            margin: 5px 0;
+            width: 90%;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 13px;
+            transition: background 0.15s;
+        }
+        .quiz-option:hover { background: rgba(0,255,255,0.15); }
+
+        /* ===== RANKING ===== */
+        #ranking-modal { z-index: 400; }
+        #global-rank-list { width: 100%; max-height: 55vh; overflow-y: auto; margin: 12px 0; }
+
+        /* ===== PAUSA ===== */
+        #pause-modal { z-index: 300; }
+    </style>
+</head>
+<body>
+<div id="game-wrapper">
+    <div id="game-container"></div>
+
+    <!-- Botones flotantes del juego -->
+    <div id="pause-btn" class="game-btn" style="display:none;" onclick="togglePause()">⏸</div>
+    <div id="power-btn" class="game-btn" style="display:none;" onclick="UI.openShop(true)">⚡</div>
+
+    <!-- HUD -->
+    <div class="ui-overlay" style="display:none;">
+        <div id="ui-lives" style="color:#ff4466;">❤️❤️❤️</div>
+        <div id="ui-streak" style="color:#ff00ff;">🔥 0</div>
+        <div id="ui-coins-game" style="color:#ffff00;">🪙 0</div>
+    </div>
+
+    <!-- INTRO -->
+    <div id="intro-screen" class="modal">
+        <div id="boot-log"></div>
+        <h1 id="intro-logo">SAIDVERSO</h1>
+        <p id="intro-sub">SISTEMA OPERATIVO WEB v5.2</p>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="login-screen" class="modal" style="display:none;">
+        <h2 style="margin-bottom:8px;">IDENTIFICACIÓN</h2>
+        <p style="font-size:12px; color:rgba(0,255,255,0.6); margin-bottom:16px;">Elige tu nombre de explorador</p>
+        <input type="text" id="username-input" placeholder="TU NOMBRE" maxlength="14"
+               onkeydown="if(event.key==='Enter') UI.registerUser()">
+        <button onclick="UI.registerUser()" style="width:80%;">ENTRAR AL SISTEMA</button>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="dashboard-screen" class="modal" style="display:none;">
+        <h2 id="dash-welcome">HOLA, EXPLORADOR</h2>
+        <div class="phrase" id="motivational-phrase"></div>
+        <div class="stats-row">
+            <div class="stat-card"><div class="stat-label">NIVEL</div><div class="stat-value" id="dash-level">N1</div></div>
+            <div class="stat-card"><div class="stat-label">RACHA</div><div class="stat-value" id="dash-streak">🔥 0</div></div>
+            <div class="stat-card"><div class="stat-label">CRÉDITOS</div><div class="stat-value" id="dash-coins">🪙 0</div></div>
+        </div>
+        <div class="dash-actions">
+            <button style="font-size:17px; padding:15px; width:85%;" onclick="startGame()">¡INICIAR EXPLORACIÓN!</button>
+            <button class="btn-secondary" onclick="UI.openShop()">🛒 TIENDA DE PODERES</button>
+            <button class="btn-secondary" onclick="UI.openRanking()">🏆 RANKING MUNDIAL</button>
+            <button class="btn-ghost" onclick="UI.logout()">CAMBIAR USUARIO</button>
+        </div>
+        <p class="key-hint">Controles: <kbd>↑↓←→</kbd> o <kbd>WASD</kbd></p>
+    </div>
+
+    <!-- TIENDA -->
+    <div id="shop-modal" class="modal" style="display:none; z-index:400;">
+        <h2 id="shop-title">TIENDA DE PODERES</h2>
+        <p id="shop-coins-display" style="color:#00ffff; margin:8px 0 14px;">🪙 0</p>
+        <div class="shop-item"><span>⭐ ESTRELLA — Neutraliza al centinela</span><button onclick="UI.buyItem('star',50)">🪙 50</button></div>
+        <div class="shop-item"><span>👻 FANTASMA — Atraviesa paredes</span><button onclick="UI.buyItem('ghost',40)">🪙 40</button></div>
+        <div class="shop-item"><span>⚡ VELOCIDAD — Corre más rápido</span><button onclick="UI.buyItem('speed',30)">🪙 30</button></div>
+        <div class="shop-item"><span>❤️ VIDA EXTRA</span><button onclick="UI.buyItem('life',25)">🪙 25</button></div>
+        <button id="shop-close-btn" onclick="UI.closeShop()" style="margin-top:18px; background:#ff00ff; color:#fff;">VOLVER</button>
+    </div>
+
+    <!-- SALUD DIGITAL -->
+    <div id="health-modal" class="modal" style="display:none; z-index:2000;">
+        <h2 style="color:#00ff88;">🌿 PAUSA SALUDABLE</h2>
+        <p id="health-tip"></p>
+        <button onclick="UI.closeHealthTip()">CONTINUAR</button>
+    </div>
+
+    <!-- RANKING -->
+    <div id="ranking-modal" class="modal" style="display:none; z-index:400;">
+        <h2 style="color:#ffff00;">🏆 RANKING MUNDIAL</h2>
+        <div id="global-rank-list"></div>
+        <button onclick="document.getElementById('ranking-modal').style.display='none'">VOLVER</button>
+    </div>
+
+    <!-- APRENDIZAJE / QUIZ -->
+    <div id="learning-modal" class="modal" style="display:none; z-index:150;">
+        <h2 style="color:#ffff00;">¡NIVEL COMPLETADO!</h2>
+        <div id="streak-msg"></div>
+        <p id="learn-text"></p>
+        <hr class="divider">
+        <p id="quiz-question"></p>
+        <div id="quiz-options" style="width:100%; display:flex; flex-direction:column; align-items:center;"></div>
+    </div>
+
+    <!-- PAUSA -->
+    <div id="pause-modal" class="modal" style="display:none; z-index:300;">
+        <h2>⏸ PAUSA</h2>
+        <p style="font-size:12px; opacity:0.6; margin:8px 0 20px;">El centinela está esperando...</p>
+        <button onclick="togglePause()">REANUDAR</button>
+        <button class="btn-secondary" onclick="goToMainMenu()">MENÚ PRINCIPAL</button>
+    </div>
+</div>
+
+<script>
+    const config = {
+        type: Phaser.AUTO,
+        width: 450,
+        height: 800,
+        parent: 'game-container',
+        backgroundColor: '#050510',
+        pixelArt: true,
+        scale: {
+            mode: Phaser.Scale.FIT,
+            autoCenter: Phaser.Scale.CENTER_BOTH
+        },
+        physics: {
+            default: 'arcade',
+            arcade: { debug: false }
+        },
+        scene: SaidVersoScene
+    };
+
+    const game = new Phaser.Game(config);
+
+    // ── Registro de usuario ──────────────────────────────────
+    UI.registerUser = function() {
+        const val = document.getElementById('username-input').value.trim().toUpperCase();
+        if (!val) { alert('Escribe tu nombre primero.'); return; }
+        localStorage.setItem('cq_username', val);
+        isInitialSync = true; // Forzar lectura de Supabase al cambiar de usuario
+        UI.showDashboard();
+    };
+
+    UI.logout = function() {
+        localStorage.removeItem('cq_username');
+        document.getElementById('dashboard-screen').style.display = 'none';
+        document.getElementById('login-screen').style.display = 'flex';
+    };
+
+    // ── Pausa ────────────────────────────────────────────────
+    function togglePause() {
+        State.isPaused = !State.isPaused;
+        const modal = document.getElementById('pause-modal');
+        if (State.isPaused) {
+            modal.style.display = 'flex';
+            game.scene.scenes[0].physics.pause();
+        } else {
+            modal.style.display = 'none';
+            if (!State.isScanning) game.scene.scenes[0].physics.resume();
+        }
+    }
+
+    function goToMainMenu() {
+        State.isPaused = false;
+        State.isScanning = false;
+        document.getElementById('pause-modal').style.display = 'none';
+        document.getElementById('pause-btn').style.display  = 'none';
+        document.getElementById('power-btn').style.display  = 'none';
+        document.querySelector('.ui-overlay').style.display = 'none';
+        game.scene.scenes[0].physics.pause();
+        UI.showDashboard();
+    }
+
+    // ── Tecla ESC para pausar ────────────────────────────────
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && document.getElementById('pause-btn').style.display !== 'none') {
+            togglePause();
+        }
+    });
+</script>
+</body>
+</html>
