@@ -223,6 +223,11 @@ window.tryActivatePower = function(type) {
         if (username) Database.saveProfile(username, State);
 
         if (type === 'life') {
+            if (lives >= 100) {
+                AudioFX.wrong();
+                State.inventory[type]++; // Devolver el poder, no se puede usar
+                return;
+            }
             lives++;
             updateLivesUI();
             AudioFX.powerup();
@@ -456,7 +461,13 @@ function runIntro(scene) {
 }
 
 // ---- UI Helpers ----
-function updateLivesUI()  { const el = document.getElementById('ui-lives');      if (el) el.innerText = '❤️'.repeat(lives); }
+function updateLivesUI() {
+    const el = document.getElementById('ui-lives');
+    if (el) {
+        if (lives <= 3) el.innerText = '❤️'.repeat(lives);
+        else el.innerText = `❤️ x${lives}`;
+    }
+}
 function updateCoinsUI()  { const el = document.getElementById('ui-coins-game'); if (el) el.innerText = `🪙 ${State.coins}`; }
 function updateInventoryUI() {
     const el = document.getElementById('ui-inventory');
