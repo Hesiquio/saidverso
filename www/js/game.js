@@ -751,11 +751,11 @@ function updateWordDisplay() {
         const code = nextChar.charCodeAt(0) - 65;
         const shifted = ((code + currentLevel.shift) % 26) + 65;
         const nextCiphered = String.fromCharCode(shifted);
-        helpMsg += ` | BUSCA: [ ${nextCiphered} ]`;
+        helpMsg += `<br><span style="color:#00ffff;">👉 BUSCA: [ ${nextCiphered} ]</span>`;
     }
 
     const hintEl = document.getElementById('ui-hint-html');
-    if (hintEl) hintEl.innerText = helpMsg;
+    if (hintEl) hintEl.innerHTML = helpMsg;
 
     // Sincronizar canvas por si acaso
     if (uiTextWord) uiTextWord.setText(fullText);

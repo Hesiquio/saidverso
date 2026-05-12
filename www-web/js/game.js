@@ -753,17 +753,17 @@ function updateWordDisplay() {
         else wordEl.style.fontSize = '16px';
     }
 
-    const hintEl = document.getElementById('ui-hint-html');
-    if (hintEl) hintEl.innerText = currentLevel.hint;
-    
     let helpMsg = currentLevel.hint;
     if (collectedWord.length < currentLevel.word.length) {
         const nextChar = currentLevel.word[collectedWord.length];
         const code = nextChar.charCodeAt(0) - 65;
         const shifted = ((code + currentLevel.shift) % 26) + 65;
         const nextCiphered = String.fromCharCode(shifted);
-        helpMsg += `   👉 Busca la [ ${nextCiphered} ]`;
+        helpMsg += `<br><span style="color:#00ffff;">👉 BUSCA: [ ${nextCiphered} ]</span>`;
     }
+
+    const hintEl = document.getElementById('ui-hint-html');
+    if (hintEl) hintEl.innerHTML = helpMsg;
     
     uiTextHint.setText(helpMsg);
 }
