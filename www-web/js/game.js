@@ -3,7 +3,7 @@
 // Diferencias vs móvil: sin D-Pad visual, controles por teclado
 // ============================================================
 
-let player, enemy, letters, mazeWalls, countdownText, coinsGroup, chestGroup;
+let player, enemy, letters, mazeWalls, countdownText, coinsGroup, chestGroup, animalGroup;
 let currentLevel = null;
 let collectedWord = "";
 let lives = 3;
@@ -65,7 +65,9 @@ class SaidVersoScene extends Phaser.Scene {
             star: Phaser.Input.Keyboard.KeyCodes.ONE,
             ghost: Phaser.Input.Keyboard.KeyCodes.TWO,
             speed: Phaser.Input.Keyboard.KeyCodes.THREE,
-            life: Phaser.Input.Keyboard.KeyCodes.FOUR
+            life: Phaser.Input.Keyboard.KeyCodes.FOUR,
+            key: Phaser.Input.Keyboard.KeyCodes.FIVE,
+            invisible: Phaser.Input.Keyboard.KeyCodes.SIX
         });
 
         // Construir nivel
@@ -92,6 +94,8 @@ class SaidVersoScene extends Phaser.Scene {
         if (Phaser.Input.Keyboard.JustDown(this.powerKeys.ghost)) tryActivatePower('ghost');
         if (Phaser.Input.Keyboard.JustDown(this.powerKeys.speed)) tryActivatePower('speed');
         if (Phaser.Input.Keyboard.JustDown(this.powerKeys.life)) tryActivatePower('life');
+        if (Phaser.Input.Keyboard.JustDown(this.powerKeys.key)) tryActivatePower('key');
+        if (Phaser.Input.Keyboard.JustDown(this.powerKeys.invisible)) tryActivatePower('invisible');
 
         player.setVelocity(0);
         const speed = State.activePower === 'speed' ? 300 : 180;
@@ -132,6 +136,9 @@ function loadLevel(scene) {
     if (!chestGroup) chestGroup = scene.physics.add.group();
     else chestGroup.clear(true, true);
 
+    if (!animalGroup) animalGroup = scene.physics.add.group();
+    else animalGroup.clear(true, true);
+
     const mazeWidth = currentLevel.maze[0].length * 40;
     const mazeHeight = currentLevel.maze.length * 40;
     const offsetX = (800 - mazeWidth) / 2;
@@ -167,6 +174,22 @@ function loadLevel(scene) {
         chestGroup.add(chest);
     }
 
+    // Animales
+    const ap = Phaser.Utils.Array.RemoveRandomElement(freeSpaces);
+    if (ap) {
+        const animalsData = [
+            { emoji: '🐕', name: 'Perro Cibernético', fact: 'Los perros tienen un olfato increíble. ¡Como un buen Antivirus detectando malware!' },
+            { emoji: '🐈', name: 'Gato Cuántico', fact: 'Los gatos duermen mucho. ¡Como una compu en modo suspensión ahorrando energía!' },
+            { emoji: '🦜', name: 'Loro Criptográfico', fact: 'Los loros imitan voces. ¡Cuidado con el Phishing de voz (Vishing)!' },
+            { emoji: '🐢', name: 'Tortuga Blindada', fact: 'Las tortugas llevan su escudo a todos lados. ¡Como un Firewall robusto!' }
+        ];
+        const animalObj = animalsData[Math.floor(Math.random() * animalsData.length)];
+        const a = scene.add.text(ap.x, ap.y, animalObj.emoji, { fontSize: '24px' }).setOrigin(0.5).setDepth(4);
+        a.setData('animal', animalObj);
+        scene.physics.add.existing(a);
+        animalGroup.add(a);
+    }
+
     // Letras cifradas
     setupLetters(scene, freeSpaces);
 
@@ -186,6 +209,7 @@ function loadLevel(scene) {
         scene.physics.add.overlap(player, enemy, handleEnemyCollision, null, scene);
         scene.physics.add.overlap(player, coinsGroup, collectCoin, null, scene);
         scene.physics.add.overlap(player, chestGroup, collectChest, null, scene);
+        scene.physics.add.overlap(player, animalGroup, collectAnimal, null, scene);
         scene.physics.add.overlap(player, letters, collectLetter, null, scene);
     } else {
         player.setPosition(freeSpaces[0].x, freeSpaces[0].y);
@@ -239,6 +263,8 @@ window.tryActivatePower = function(type) {
             if (type === 'star') player.setTint(0xffff00);
             if (type === 'ghost') player.setAlpha(0.4);
             if (type === 'speed') player.setTint(0x00ff99);
+            if (type === 'key') player.setTint(0xff8800);
+            if (type === 'invisible') player.setAlpha(0.2);
             AudioFX.powerup();
             
             if (powerTimerEvent) clearInterval(powerTimerEvent);
@@ -362,7 +388,9 @@ window.startRoulette = function(title, callback = null) {
         { id: 'star', icon: '⭐', text: 'ESTRELLA: Neutraliza al centinela.' },
         { id: 'ghost', icon: '👻', text: 'FANTASMA: Atraviesa paredes.' },
         { id: 'speed', icon: '⚡', text: 'VELOCIDAD: Corre más rápido.' },
-        { id: 'life', icon: '❤️', text: 'VIDA EXTRA: Suma un corazón.' }
+        { id: 'life', icon: '❤️', text: 'VIDA EXTRA: Suma un corazón.' },
+        { id: 'key', icon: '🔑', text: 'CRIPTO-LLAVE: Toda letra sirve.' },
+        { id: 'invisible', icon: '👁️', text: 'INVISIBLE: Sin rastreo.' }
     ];
     
     let spins = 0;
@@ -400,6 +428,19 @@ window.startRoulette = function(title, callback = null) {
             updateInventoryUI();
         }
     }, 100);
+}
+
+window.showAnimalFact = function(data) {
+    game.scene.scenes[0].physics.pause();
+    State.isPaused = true;
+    document.getElementById('roulette-title').innerText = `¡${data.name.toUpperCase()} RESCATADO!`;
+    document.getElementById('roulette-box').innerText = data.emoji;
+    document.getElementById('roulette-desc').innerText = `¡Ganaste 50 Créditos!\n\nDato curioso:\n${data.fact}`;
+    
+    const actionsDiv = document.getElementById('roulette-actions');
+    actionsDiv.style.display = 'flex';
+    actionsDiv.innerHTML = `<button onclick="closeRoulette(false)" style="width:80%;">¡INCREÍBLE!</button>`;
+    document.getElementById('roulette-modal').style.display = 'flex';
 }
 
 // ---- Fase de aprendizaje ----
@@ -499,10 +540,12 @@ function updateInventoryUI() {
     if (el) {
         const i = State.inventory || { star:0, ghost:0, speed:0, life:0 };
         el.innerHTML = `
-            <span onclick="window.tryActivatePower('life')" style="cursor:pointer;" title="Usar Vida Extra [4]">❤️${i.life}</span> &nbsp;&nbsp;
-            <span onclick="window.tryActivatePower('star')" style="cursor:pointer;" title="Usar Estrella [1]">⭐${i.star}</span> &nbsp;&nbsp;
-            <span onclick="window.tryActivatePower('ghost')" style="cursor:pointer;" title="Usar Fantasma [2]">👻${i.ghost}</span> &nbsp;&nbsp;
-            <span onclick="window.tryActivatePower('speed')" style="cursor:pointer;" title="Usar Velocidad [3]">⚡${i.speed}</span>
+            <span onclick="window.tryActivatePower('life')" style="cursor:pointer;" title="Usar Vida Extra [4]">❤️${i.life||0}</span> &nbsp;&nbsp;
+            <span onclick="window.tryActivatePower('star')" style="cursor:pointer;" title="Usar Estrella [1]">⭐${i.star||0}</span> &nbsp;&nbsp;
+            <span onclick="window.tryActivatePower('ghost')" style="cursor:pointer;" title="Usar Fantasma [2]">👻${i.ghost||0}</span> &nbsp;&nbsp;
+            <span onclick="window.tryActivatePower('speed')" style="cursor:pointer;" title="Usar Velocidad [3]">⚡${i.speed||0}</span> &nbsp;&nbsp;
+            <span onclick="window.tryActivatePower('key')" style="cursor:pointer;" title="Usar Llave [5]">🔑${i.key||0}</span> &nbsp;&nbsp;
+            <span onclick="window.tryActivatePower('invisible')" style="cursor:pointer;" title="Usar Invisible [6]">👁️${i.invisible||0}</span>
         `;
     }
 }

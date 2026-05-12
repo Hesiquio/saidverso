@@ -47,13 +47,17 @@ const UI = {
         document.getElementById('dash-streak').innerText = `🔥 ${State.streak}`;
         document.getElementById('dash-coins').innerText  = `🪙 ${State.coins}`;
         
-        const inv = State.inventory || { star: 0, ghost: 0, speed: 0, life: 0 };
+        const inv = State.inventory || { star: 0, ghost: 0, speed: 0, life: 0, key: 0, invisible: 0 };
         const elStar = document.getElementById('dash-inv-star');
         if (elStar) {
-            elStar.innerText = inv.star;
-            document.getElementById('dash-inv-ghost').innerText = inv.ghost;
-            document.getElementById('dash-inv-speed').innerText = inv.speed;
-            document.getElementById('dash-inv-life').innerText  = inv.life;
+            elStar.innerText = inv.star || 0;
+            document.getElementById('dash-inv-ghost').innerText = inv.ghost || 0;
+            document.getElementById('dash-inv-speed').innerText = inv.speed || 0;
+            document.getElementById('dash-inv-life').innerText  = inv.life || 0;
+            const elKey = document.getElementById('dash-inv-key');
+            if (elKey) elKey.innerText = inv.key || 0;
+            const elInv = document.getElementById('dash-inv-invisible');
+            if (elInv) elInv.innerText = inv.invisible || 0;
         }
         
         // Guardar progreso actual a Supabase siempre que pasamos por el dashboard
