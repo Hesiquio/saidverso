@@ -195,8 +195,14 @@ function loadLevel(scene) {
 
     // HUD en canvas
     if (!uiTextWord) {
-        uiTextWord = scene.add.text(400, 30, '', { fontSize: '26px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(10);
-        uiTextHint = scene.add.text(400, 65, '', { fontSize: '14px', color: '#ff00ff' }).setOrigin(0.5).setDepth(10);
+        uiTextWord = scene.add.text(400, 25, '', { 
+            fontSize: '32px', color: '#00ffff', fontStyle: 'bold', padding: { bottom: 10 } 
+        }).setOrigin(0.5).setDepth(10);
+        
+        uiTextHint = scene.add.text(400, 65, '', { 
+            fontSize: '16px', color: '#ff00ff', fontStyle: 'bold', backgroundColor: '#00000088', padding: { x: 10, y: 5 } 
+        }).setOrigin(0.5).setDepth(10);
+        
         countdownText = scene.add.text(400, 300, '', {
             fontSize: '36px', color: '#ffff00', fontStyle: 'bold', backgroundColor: '#000000bb', padding: { x: 15, y: 10 }
         }).setOrigin(0.5).setDepth(500).setVisible(false);
@@ -461,9 +467,20 @@ function updateInventoryUI() {
 }
 function updateWordDisplay() {
     const shown = collectedWord.split('').join(' ');
-    const blanks = '_ '.repeat(currentLevel.word.length - collectedWord.length).trim();
+    // Se usan espacios adicionales para hacer el guión mucho más ancho y visible
+    const blanks = ' _ '.repeat(currentLevel.word.length - collectedWord.length).trim();
     uiTextWord.setText(`${shown} ${blanks}`.trim());
-    uiTextHint.setText(currentLevel.hint);
+    
+    let helpMsg = currentLevel.hint;
+    if (collectedWord.length < currentLevel.word.length) {
+        const nextChar = currentLevel.word[collectedWord.length];
+        const code = nextChar.charCodeAt(0) - 65;
+        const shifted = ((code + currentLevel.shift) % 26) + 65;
+        const nextCiphered = String.fromCharCode(shifted);
+        helpMsg += `   👉 Busca la [ ${nextCiphered} ]`;
+    }
+    
+    uiTextHint.setText(helpMsg);
 }
 
 // ---- Punto de entrada ----
