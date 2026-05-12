@@ -114,6 +114,7 @@ function loadLevel(scene) {
     currentLevel = allLevels[State.currentLevelIndex] || allLevels[0];
     collectedWord = "";
     lives = 3;
+    window.perfectLevel = true;
     updateLivesUI();
     updateCoinsUI();
     updateInventoryUI();
@@ -281,6 +282,8 @@ function handleEnemyCollision() {
         }, 5000); // El centinela revive en 5 segundos en su base
         return; 
     }
+    
+    window.perfectLevel = false; // Perdió el bono perfecto
     AudioFX.hit(); lives--; State.streak = 0; State.save();
     updateLivesUI();
     const el = document.getElementById('ui-streak');
@@ -327,7 +330,7 @@ function collectLetter(p, l) {
     collectedWord += val; l.destroy(); updateWordDisplay();
     if (collectedWord === currentLevel.word) {
         AudioFX.win();
-        if (lives === 3) { 
+        if (window.perfectLevel) { 
             State.coins += 20; updateCoinsUI(); 
             window.startRoulette("¡BONO DE NIVEL PERFECTO!", showLearningPhase);
         } else {
