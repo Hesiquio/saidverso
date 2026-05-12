@@ -4,42 +4,54 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const Database = {
     async fetchLevels() {
-        const { data, error } = await supabaseClient.from('niveles').select('*').order('id', { ascending: true });
-        if (error) {
-            console.error("Error al obtener niveles:", error.message);
-            return [];
-        }
-        return data.map(d => d.config);
+        try {
+            const { data, error } = await supabaseClient.from('niveles').select('*').order('id', { ascending: true });
+            if (error) { console.error("fetchLevels:", error.message); return []; }
+            return data.map(d => d.config);
+        } catch(e) { console.error("fetchLevels exception:", e); return []; }
     },
 
-    async saveScore(username, levelIndex, streak, coins) {
-        if (!username || username === "EXPLORADOR") return;
-        
-        const combinedScore = (levelIndex * 1000) + streak;
-        
-        // Guardamos en Supabase (Ranking Global)
-        const { error } = await supabaseClient.from('rankings').upsert([{ 
-            username: username, 
-            score: combinedScore 
-        }], { onConflict: 'username' });
+    async saveProfile(username, state) {
+        if (!username) return;
+        const score = (state.currentLevelIndex * 1000) + state.streak;
+        try {
+            const payload = {
+                username: username,
+                score: score,
+                level: state.currentLevelIndex,
+                streak: state.streak,
+                coins: state.coins,
+                inventory: state.inventory
+            };
+            const { error } = await supabaseClient.from('rankings')
+                .upsert([payload], { onConflict: 'username' });
+            if (error) console.error("saveProfile:", error.message);
+        } catch(e) { console.error("saveProfile exception:", e); }
+    },
 
-        if (error) {
-            console.error("Error al guardar en Ranking:", error.message);
-        } else {
-            console.log("Progreso sincronizado con éxito.");
-        }
+    async loadProfile(username) {
+        if (!username) return null;
+        try {
+            const { data, error } = await supabaseClient.from('rankings')
+                .select('*')
+                .eq('username', username)
+                .single();
+            if (error && error.code !== 'PGRST116') { // PGRST116 significa "0 rows" (usuario nuevo)
+                console.error("loadProfile:", error.message); 
+                return null;
+            }
+            return data || null;
+        } catch(e) { console.error("loadProfile exception:", e); return null; }
     },
 
     async getRanking() {
-        const { data, error } = await supabaseClient.from('rankings')
-            .select('username, score')
-            .order('score', { ascending: false })
-            .limit(10);
-            
-        if (error) {
-            console.error("Error al obtener Ranking:", error.message);
-            return [];
-        }
-        return data || [];
+        try {
+            const { data, error } = await supabaseClient.from('rankings')
+                .select('username, score, level, streak')
+                .order('score', { ascending: false })
+                .limit(10);
+            if (error) { console.error("getRanking:", error.message); return []; }
+            return data || [];
+        } catch(e) { console.error("getRanking exception:", e); return []; }
     }
 };

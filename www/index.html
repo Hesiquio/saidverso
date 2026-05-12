@@ -3,105 +3,441 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SaidVerso v5.1.6</title>
+    <title>SaidVerso — Explorador Criptográfico</title>
+    <meta name="description" content="SaidVerso: el juego educativo de criptografía para niños. Descifra palabras, rescata animales y aprende a proteger tu información.">
+
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Módulos del juego — ORDEN CRÍTICO -->
     <script src="js/state.js"></script>
     <script src="js/audio.js"></script>
     <script src="js/database.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/game.js"></script>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@700&display=swap');
-        body { margin: 0; background: #020205; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: 'Courier Prime', monospace; }
-        #game-wrapper { position: relative; width: 100vw; height: 100vh; background: #000; overflow: hidden; }
-        .ui-overlay { position: absolute; top: 10px; left: 10px; width: calc(100% - 20px); pointer-events: none; color: #00ffff; display: flex; justify-content: space-between; font-size: 12px; text-transform: uppercase; z-index: 10; }
-        .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 5, 25, 0.98); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; padding: 20px; box-sizing: border-box; color: #00ffff; text-align: center; }
-        input { background: #1a1a2e; border: 2px solid #00ffff; color: #00ffff; padding: 15px; font-family: 'Courier Prime', monospace; font-size: 18px; margin: 10px; text-align: center; outline: none; width: 80%; }
-        button { background: #00ffff; color: #000; border: none; padding: 12px 25px; font-family: 'Courier Prime', monospace; font-weight: bold; font-size: 14px; cursor: pointer; box-shadow: 0 0 15px #00ffff; margin-top: 10px; text-transform: uppercase; }
-        #intro-screen { z-index: 500; background: #000; transition: opacity 1s; }
-        .boot-line { font-size: 10px; color: #00ff00; width: 100%; text-align: left; padding-left: 20px; opacity: 0.7; }
-        #dashboard-screen { background: radial-gradient(circle, #0a0a2e 0%, #020205 100%); }
-        .stat-card { background: rgba(0, 255, 255, 0.05); border: 1px solid #00ffff; padding: 10px; width: 85%; margin: 5px 0; border-radius: 8px; }
-        .game-btn { position: absolute; width: 50px; height: 50px; background: rgba(0,255,255,0.2); border: 2px solid #00ffff; color: #00ffff; border-radius: 50%; font-size: 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; pointer-events: auto; z-index: 200; }
-        #pause-btn { bottom: 20px; left: 20px; }
-        #power-btn { bottom: 20px; right: 20px; border-color: #ffff00; color: #ffff00; box-shadow: 0 0 10px #ffff00; }
-        .phrase { font-style: italic; font-size: 12px; color: #ff00ff; margin: 15px 0; }
-        .shop-item { background: rgba(0,255,255,0.1); border: 1px solid #00ffff; padding: 10px; margin: 5px; width: 90%; display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
-        .quiz-option { background: #1a1a2e; border: 1px solid #00ffff; color: #00ffff; padding: 12px; margin: 8px; width: 90%; cursor: pointer; font-family: 'Courier Prime', monospace; }
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #020208;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Courier Prime', monospace;
+            color: #00ffff;
+        }
+
+        /* Contenedor principal: centra el canvas del juego */
+        #game-wrapper {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+        }
+
+        #game-container canvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* ===== MODALES ===== */
+        .modal {
+            position: absolute;
+            inset: 0;
+            background: rgba(4, 4, 22, 0.97);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 24px;
+            text-align: center;
+        }
+
+        /* ===== INPUTS & BUTTONS ===== */
+        input {
+            background: #0d1b3e;
+            border: 1.5px solid #00ffff;
+            color: #00ffff;
+            padding: 12px 16px;
+            font-family: inherit;
+            font-size: 16px;
+            text-align: center;
+            outline: none;
+            width: 80%;
+            margin: 8px 0;
+            letter-spacing: 2px;
+        }
+
+        button {
+            background: #00ffff;
+            color: #000;
+            border: none;
+            padding: 11px 22px;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 0 12px rgba(0,255,255,0.5);
+            margin-top: 8px;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        button:active { transform: scale(0.97); box-shadow: 0 0 6px rgba(0,255,255,0.3); }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1.5px solid #ffff00;
+            color: #ffff00;
+            box-shadow: 0 0 8px rgba(255,255,0,0.3);
+            width: 85%;
+        }
+        .btn-ghost {
+            background: transparent;
+            border: 1.5px solid rgba(0,255,255,0.3);
+            color: rgba(0,255,255,0.6);
+            box-shadow: none;
+            font-size: 11px;
+            width: 85%;
+        }
+
+        /* ===== INTRO ===== */
+        #intro-screen { z-index: 500; background: #000; transition: opacity 0.9s; }
+        #boot-log { height: 120px; overflow: hidden; width: 100%; margin-bottom: 24px; }
+        .boot-line { font-size: 10px; color: #00ff00; text-align: left; padding: 2px 16px; opacity: 0.8; }
+        #intro-logo { color: #00ffff; font-size: 44px; opacity: 0; text-shadow: 0 0 24px #00ffff; margin-bottom: 6px; transition: opacity 0.5s; }
+        #intro-sub   { color: #ff00ff; font-size: 13px; opacity: 0; letter-spacing: 3px; transition: opacity 0.5s; }
+
+        /* ===== DASHBOARD ===== */
+        #dashboard-screen { background: radial-gradient(ellipse at top, #0a0a2e 0%, #020208 70%); }
+        #dash-welcome { color: #00ffff; font-size: 20px; margin-bottom: 4px; }
+        .phrase { font-style: italic; font-size: 12px; color: #ff00ff; margin-bottom: 16px; opacity: 0.8; }
+        .stats-row { display: flex; gap: 8px; width: 90%; justify-content: center; margin-bottom: 16px; }
+        .stat-card {
+            flex: 1;
+            background: rgba(0,255,255,0.04);
+            border: 1px solid rgba(0,255,255,0.3);
+            border-radius: 6px;
+            padding: 10px 6px;
+            text-align: center;
+        }
+        .stat-label { font-size: 8px; color: #ffff00; letter-spacing: 1px; margin-bottom: 4px; }
+        .stat-value { font-size: 18px; font-weight: 700; }
+        .dash-actions { display: flex; flex-direction: column; align-items: center; width: 100%; gap: 0; }
+        .dash-actions button { width: 85%; }
+
+        /* Hint de controles */
+        .key-hint { font-size: 10px; color: rgba(0,255,255,0.4); margin-top: 16px; letter-spacing: 1px; }
+        .key-hint kbd {
+            background: rgba(0,255,255,0.1);
+            border: 1px solid rgba(0,255,255,0.3);
+            border-radius: 3px;
+            padding: 1px 5px;
+            font-family: inherit;
+        }
+
+        /* ===== HUD DEL JUEGO ===== */
+        .ui-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* ===== BOTONES FLOTANTES ===== */
+        .game-btn {
+            position: absolute;
+            width: 46px; height: 46px;
+            border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 18px;
+            cursor: pointer;
+            pointer-events: auto;
+            z-index: 200;
+            transition: transform 0.1s;
+        }
+        .game-btn:active { transform: scale(0.92); }
+        #pause-btn {
+            top: 16px; left: 16px;
+            background: rgba(0,255,255,0.15);
+            border: 2px solid #00ffff;
+            color: #00ffff;
+        }
+        #power-btn {
+            top: 16px; right: 16px;
+            background: rgba(255,255,0,0.15);
+            border: 2px solid #ffff00;
+            color: #ffff00;
+            box-shadow: 0 0 10px rgba(255,255,0,0.4);
+        }
+
+        /* ===== TIENDA ===== */
+        #shop-modal { z-index: 400; }
+        #shop-title { color: #ffff00; margin-bottom: 4px; }
+        .shop-item {
+            background: rgba(0,255,255,0.06);
+            border: 1px solid rgba(0,255,255,0.25);
+            padding: 10px 14px;
+            margin: 4px 0;
+            width: 92%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+        .shop-item button { margin: 0; padding: 6px 14px; font-size: 11px; }
+
+        /* ===== SALUD ===== */
+        #health-modal { z-index: 2000; background: rgba(0, 20, 0, 0.97); }
+        #health-tip { font-size: 15px; line-height: 1.6; max-width: 340px; margin: 16px 0; }
+
+        /* ===== QUIZ ===== */
+        #learning-modal { z-index: 150; }
+        #streak-msg { color: #ff00ff; font-weight: 700; margin: 8px 0; }
+        #learn-text { font-size: 13px; margin: 8px 0; line-height: 1.5; max-width: 340px; }
+        hr.divider { width: 100%; border: 0; border-top: 1px solid rgba(0,255,255,0.2); margin: 14px 0; }
+        #quiz-question { font-weight: 700; font-size: 14px; margin-bottom: 12px; }
+        .quiz-option {
+            background: #0d1b3e;
+            border: 1.5px solid #00ffff;
+            color: #00ffff;
+            padding: 11px;
+            margin: 5px 0;
+            width: 90%;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 13px;
+            transition: background 0.15s;
+        }
+        .quiz-option:hover { background: rgba(0,255,255,0.15); }
+
+        /* ===== RANKING ===== */
+        #ranking-modal { z-index: 400; }
+        #global-rank-list { width: 100%; max-height: 55vh; overflow-y: auto; margin: 12px 0; }
+
+        /* ===== PAUSA ===== */
+        #pause-modal { z-index: 300; }
     </style>
 </head>
 <body>
 <div id="game-wrapper">
     <div id="game-container"></div>
+
+    <!-- Botones flotantes del juego -->
     <div id="pause-btn" class="game-btn" style="display:none;" onclick="togglePause()">⏸</div>
     <div id="power-btn" class="game-btn" style="display:none;" onclick="UI.openShop(true)">⚡</div>
-    <div id="intro-screen" class="modal">
-        <div id="boot-log" style="height: 150px; overflow: hidden; width: 100%; margin-bottom: 30px;"></div>
-        <h1 id="intro-logo" style="color:#00ffff; font-size: 40px; opacity: 0; text-shadow: 0 0 20px #00ffff;">SAIDVERSO</h1>
-        <p id="intro-sub" style="color:#ff00ff; opacity: 0;">SISTEMA OPERATIVO v5.1.6</p>
-    </div>
-    <div id="login-screen" class="modal" style="display:none;">
-        <h1 style="color:#00ffff; margin-bottom: 20px;">IDENTIFICACIÓN</h1>
-        <input type="text" id="username-input" placeholder="TU NOMBRE" maxlength="12">
-        <button onclick="UI.showDashboard()">ENTRAR AL SISTEMA</button>
-    </div>
-    <div id="dashboard-screen" class="modal" style="display:none;">
-        <h2 id="dash-welcome" style="color:#00ffff; margin-top: 0;">HOLA, EXPLORADOR</h2>
-        <div class="phrase" id="motivational-phrase"></div>
-        <div style="display:flex; gap:10px; width:90%; justify-content:center;">
-            <div class="stat-card" style="width:30%;"><div style="font-size: 8px; color:#ffff00;">NIVEL</div><div id="dash-level" style="font-size: 16px; font-weight: bold;">N1</div></div>
-            <div class="stat-card" style="width:30%;"><div style="font-size: 8px; color:#ffff00;">RACHA</div><div id="dash-streak" style="font-size: 16px; font-weight: bold;">🔥 0</div></div>
-            <div class="stat-card" style="width:30%;"><div style="font-size: 8px; color:#ffff00;">CRÉDITOS</div><div id="dash-coins" style="font-size: 16px; font-weight: bold;">🪙 0</div></div>
-        </div>
-        <button style="font-size: 18px; padding: 15px 35px; width:85%;" onclick="startGame()">¡INICIAR EXPLORACIÓN!</button>
-        <button style="background:#ffff00; color:#000; width:85%;" onclick="UI.openShop()">🛒 TIENDA DE PODERES</button>
-        <button style="background:none; border:1px solid #ffff00; color:#ffff00; width:85%; font-size:10px;" onclick="UI.openRanking()">🏆 RANKING MUNDIAL</button>
-    </div>
-    <div id="shop-modal" class="modal" style="display:none; z-index: 400;">
-        <h2 id="shop-title" style="color:#ffff00;">TIENDA DE PODERES</h2>
-        <div id="shop-coins-display" style="color:#00ffff; margin-bottom:10px;">Tus créditos: 🪙 0</div>
-        <div id="shop-items-list" style="width:100%; display:flex; flex-direction:column; align-items:center;">
-            <div class="shop-item"><span>⭐ ESTRELLA</span><button onclick="UI.buyItem('star', 50)">🪙 50</button></div>
-            <div class="shop-item"><span>👻 FANTASMA</span><button onclick="UI.buyItem('ghost', 40)">🪙 40</button></div>
-            <div class="shop-item"><span>⚡ VELOCIDAD</span><button onclick="UI.buyItem('speed', 30)">🪙 30</button></div>
-            <div class="shop-item"><span>❤️ VIDA EXTRA</span><button onclick="UI.buyItem('life', 25)">🪙 25</button></div>
-        </div>
-        <button id="shop-close-btn" onclick="UI.closeShop()" style="margin-top:20px; background:#ff00ff; color:white;">VOLVER</button>
-    </div>
-    <div id="pause-modal" class="modal" style="display:none; z-index: 300;">
-        <h2 style="color:#00ffff;">PAUSA TÁCTICA</h2>
-        <button onclick="togglePause()">REANUDAR</button>
-        <button style="background:#ff00ff; color:#fff;" onclick="goToMainMenu()">MENÚ PRINCIPAL</button>
-    </div>
+
+    <!-- HUD -->
     <div class="ui-overlay" style="display:none;">
-        <div id="ui-lives" style="color:#ff00ff; font-weight:bold;">❤️❤️❤️</div>
-        <div id="ui-coins-game" style="color:#ffff00; font-weight:bold;">🪙 0</div>
+        <!-- Top Center: Inventory -->
+        <div style="position:absolute; top:20px; width:100%; display:flex; justify-content:center;">
+            <div id="ui-inventory" style="background:rgba(0,255,255,0.1); border:1px solid rgba(0,255,255,0.3); padding:8px 16px; border-radius:12px; color:#00ff99; pointer-events:auto; font-size:16px;">
+                ❤️0  ⭐0  👻0  ⚡0  🔑0  👁️0
+            </div>
+        </div>
+
+        <!-- Bottom Left: Streak -->
+        <div style="position:absolute; bottom:15px; left:15px;">
+            <div id="ui-streak" style="color:#ff00ff; font-size:18px; background:rgba(0,0,0,0.5); padding:4px 8px; border-radius:4px;">🔥 0</div>
+        </div>
+
+        <!-- Bottom Right: Coins -->
+        <div style="position:absolute; bottom:15px; right:15px;">
+            <div id="ui-coins-game" style="color:#ffff00; font-size:18px; background:rgba(0,0,0,0.5); padding:4px 8px; border-radius:4px;">🪙 0</div>
+        </div>
+    </div>
+
+    <!-- INTRO -->
+    <div id="intro-screen" class="modal">
+        <div id="boot-log"></div>
+        <h1 id="intro-logo">SAIDVERSO</h1>
+        <p id="intro-sub">SISTEMA OPERATIVO WEB v5.2</p>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="login-screen" class="modal" style="display:none;">
+        <h2 style="margin-bottom:8px;">IDENTIFICACIÓN</h2>
+        <p style="font-size:12px; color:rgba(0,255,255,0.6); margin-bottom:16px;">Elige tu nombre de explorador</p>
+        <input type="text" id="username-input" placeholder="TU NOMBRE" maxlength="14"
+               onkeydown="if(event.key==='Enter') UI.registerUser()">
+        <button onclick="UI.registerUser()" style="width:80%;">ENTRAR AL SISTEMA</button>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="dashboard-screen" class="modal" style="display:none;">
+        <h2 id="dash-welcome">HOLA, EXPLORADOR</h2>
+        <div class="phrase" id="motivational-phrase"></div>
+        <div class="stats-row">
+            <div class="stat-card"><div class="stat-label">NIVEL</div><div class="stat-value" id="dash-level">N1</div></div>
+            <div class="stat-card"><div class="stat-label">RACHA</div><div class="stat-value" id="dash-streak">🔥 0</div></div>
+            <div class="stat-card"><div class="stat-label">CRÉDITOS</div><div class="stat-value" id="dash-coins">🪙 0</div></div>
+        </div>
+        
+        <div style="background:rgba(0,255,255,0.06); border: 1px solid rgba(0,255,255,0.2); border-radius:6px; padding:10px; width:90%; margin-bottom:16px; display:flex; justify-content:space-around; font-size:14px; align-items:center;">
+            <span title="Vida Extra">❤️ <strong id="dash-inv-life" style="color:#ffff00">0</strong></span>
+            <span title="Estrella">⭐ <strong id="dash-inv-star" style="color:#ffff00">0</strong></span>
+            <span title="Fantasma">👻 <strong id="dash-inv-ghost" style="color:#ffff00">0</strong></span>
+            <span title="Velocidad">⚡ <strong id="dash-inv-speed" style="color:#ffff00">0</strong></span>
+            <span title="Cripto-Llave">🔑 <strong id="dash-inv-key" style="color:#ffff00">0</strong></span>
+            <span title="Invisible">👁️ <strong id="dash-inv-invisible" style="color:#ffff00">0</strong></span>
+        </div>
+        
+        <div class="dash-actions">
+            <button style="font-size:17px; padding:15px; width:85%;" onclick="startGame()">¡INICIAR EXPLORACIÓN!</button>
+            <button class="btn-secondary" onclick="UI.openShop()">🛒 TIENDA DE PODERES</button>
+            <button class="btn-secondary" onclick="UI.openRanking()">🏆 RANKING MUNDIAL</button>
+            <button class="btn-ghost" onclick="UI.logout()">CAMBIAR USUARIO</button>
+        </div>
+        <p class="key-hint">Moverte: <kbd>WASD</kbd> o <kbd>Flechas</kbd> | Pausar: <kbd>ESC</kbd></p>
+    </div>
+
+    <!-- TIENDA -->
+    <div id="shop-modal" class="modal" style="display:none; z-index:400;">
+        <h2 id="shop-title">TIENDA DE PODERES</h2>
+        <p id="shop-coins-display" style="color:#00ffff; margin:8px 0 14px;">🪙 0</p>
+        <div class="shop-item"><span>⭐ ESTRELLA — Neutraliza al centinela</span><button onclick="UI.buyItem('star',50)">🪙 50</button></div>
+        <div class="shop-item"><span>👻 FANTASMA — Atraviesa paredes</span><button onclick="UI.buyItem('ghost',40)">🪙 40</button></div>
+        <div class="shop-item"><span>⚡ VELOCIDAD — Corre más rápido</span><button onclick="UI.buyItem('speed',30)">🪙 30</button></div>
+        <div class="shop-item"><span>❤️ VIDA EXTRA</span><button onclick="UI.buyItem('life',25)">🪙 25</button></div>
+        <div class="shop-item"><span>🔑 CRIPTO-LLAVE — Toda letra sirve</span><button onclick="UI.buyItem('key',45)">🪙 45</button></div>
+        <div class="shop-item"><span>👁️ INVISIBLE — Sin rastreo</span><button onclick="UI.buyItem('invisible',60)">🪙 60</button></div>
+        <button id="shop-close-btn" onclick="UI.closeShop()" style="margin-top:18px; background:#ff00ff; color:#fff;">VOLVER</button>
+    </div>
+
+    <!-- SALUD DIGITAL -->
+    <div id="health-modal" class="modal" style="display:none; z-index:2000;">
+        <h2 style="color:#00ff88;">🌿 PAUSA SALUDABLE</h2>
+        <p id="health-tip"></p>
+        <button onclick="UI.closeHealthTip()">CONTINUAR</button>
+    </div>
+
+    <!-- RANKING -->
+    <div id="ranking-modal" class="modal" style="display:none; z-index:400;">
+        <h2 style="color:#ffff00;">🏆 RANKING MUNDIAL</h2>
+        <div id="global-rank-list"></div>
+        <button onclick="document.getElementById('ranking-modal').style.display='none'">VOLVER</button>
+    </div>
+
+    <!-- APRENDIZAJE / QUIZ -->
+    <div id="learning-modal" class="modal" style="display:none; z-index:150;">
+        <h2 style="color:#ffff00;">¡NIVEL COMPLETADO!</h2>
+        <div id="streak-msg"></div>
+        <p id="learn-text"></p>
+        <hr class="divider">
+        <p id="quiz-question"></p>
+        <div id="quiz-options" style="width:100%; display:flex; flex-direction:column; align-items:center;"></div>
+    </div>
+
+    <!-- PAUSA -->
+    <div id="pause-modal" class="modal" style="display:none; z-index:300;">
+        <h2>⏸ PAUSA</h2>
+        <p style="font-size:12px; opacity:0.6; margin:8px 0 20px;">El centinela está esperando...</p>
+        <button onclick="togglePause()">REANUDAR</button>
+        <button class="btn-secondary" onclick="goToMainMenu()">MENÚ PRINCIPAL</button>
+    </div>
+
+    <!-- RULETA COFRE -->
+    <div id="roulette-modal" class="modal" style="display:none; z-index:450;">
+        <h2 id="roulette-title" style="color:#ffff00; margin-bottom: 20px;">¡COFRE ENCONTRADO!</h2>
+        <div id="roulette-box" style="font-size: 50px; margin: 20px 0; background: rgba(0,255,255,0.1); padding: 20px; border: 2px solid #00ffff; border-radius: 10px; width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(0,255,255,0.5);">❓</div>
+        <p id="roulette-desc" style="font-size: 14px; color: #ff00ff; max-width: 300px; min-height: 40px; text-align: center;"></p>
+        <div id="roulette-actions" style="display:none; flex-direction:column; width:100%; gap:8px; margin-top:10px; align-items:center;"></div>
     </div>
 </div>
+
 <script>
     const config = {
-        type: Phaser.AUTO, width: 450, height: 800, parent: 'game-container', backgroundColor: '#050510', pixelArt: true,
-        scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-        physics: { default: 'arcade', arcade: { debug: false } },
+        type: Phaser.AUTO,
+        width: 450,
+        height: 800,
+        parent: 'game-container',
+        backgroundColor: '#050510',
+        pixelArt: true,
+        scale: {
+            mode: Phaser.Scale.FIT,
+            autoCenter: Phaser.Scale.CENTER_BOTH
+        },
+        physics: {
+            default: 'arcade',
+            arcade: { debug: false }
+        },
         scene: SaidVersoScene
     };
+
     const game = new Phaser.Game(config);
+
+    // ── Registro de usuario ──────────────────────────────────
+    UI.registerUser = function() {
+        const val = document.getElementById('username-input').value.trim().toUpperCase();
+        if (!val) { alert('Escribe tu nombre primero.'); return; }
+        localStorage.setItem('cq_username', val);
+        isInitialSync = true; // Forzar lectura de Supabase al cambiar de usuario
+        UI.showDashboard();
+    };
+
+    UI.logout = function() {
+        localStorage.removeItem('cq_username');
+        document.getElementById('dashboard-screen').style.display = 'none';
+        document.getElementById('login-screen').style.display = 'flex';
+    };
+
+    // ── Pausa ────────────────────────────────────────────────
     function togglePause() {
         State.isPaused = !State.isPaused;
-        const m = document.getElementById('pause-modal');
-        if (State.isPaused) { m.style.display = 'flex'; game.scene.scenes[0].physics.pause(); }
-        else { m.style.display = 'none'; if (!State.isScanning) game.scene.scenes[0].physics.resume(); }
+        const modal = document.getElementById('pause-modal');
+        if (State.isPaused) {
+            modal.style.display = 'flex';
+            game.scene.scenes[0].physics.pause();
+        } else {
+            modal.style.display = 'none';
+            if (!State.isScanning) game.scene.scenes[0].physics.resume();
+        }
     }
+
     function goToMainMenu() {
-        State.isPaused = false; State.isScanning = false;
+        State.isPaused = false;
+        State.isScanning = false;
         document.getElementById('pause-modal').style.display = 'none';
-        document.getElementById('pause-btn').style.display = 'none';
-        document.getElementById('power-btn').style.display = 'none';
+        document.getElementById('pause-btn').style.display  = 'none';
+        document.getElementById('power-btn').style.display  = 'none';
         document.querySelector('.ui-overlay').style.display = 'none';
         game.scene.scenes[0].physics.pause();
         UI.showDashboard();
     }
+
+    // ── Ruleta ───────────────────────────────────────────────
+    function closeRoulette(useNow = false) {
+        document.getElementById('roulette-modal').style.display = 'none';
+        State.isPaused = false;
+        
+        if (useNow && window.lastRolledPower) {
+            window.tryActivatePower(window.lastRolledPower);
+        }
+        
+        // Si hay una función de callback pendiente (ej. aprendizaje), la llamamos
+        if (window.rouletteCallback) {
+            window.rouletteCallback();
+            window.rouletteCallback = null;
+        } else {
+            if (!State.isScanning) game.scene.scenes[0].physics.resume();
+        }
+    }
+
+    // ── Tecla ESC para pausar ────────────────────────────────
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && document.getElementById('pause-btn').style.display !== 'none') {
+            togglePause();
+        }
+    });
 </script>
 </body>
 </html>
