@@ -331,6 +331,15 @@ function collectCoin(p, c) {
     State.coins += 10; updateCoinsUI();
 }
 
+function collectAnimal(p, a) {
+    const data = a.getData('animal');
+    a.destroy();
+    AudioFX.powerup();
+    State.coins += 50;
+    updateCoinsUI();
+    window.showAnimalFact(data);
+}
+
 // ---- Letras ----
 function setupLetters(scene, freeSpaces) {
     const { word, shift } = currentLevel;
@@ -349,11 +358,15 @@ function setupLetters(scene, freeSpaces) {
 
 function collectLetter(p, l) {
     const val = l.getData('val');
-    if (val !== currentLevel.word[collectedWord.length]) {
+    let isAllowed = (val === currentLevel.word[collectedWord.length]);
+    if (State.activePower === 'key') isAllowed = true;
+    
+    if (!isAllowed) {
         AudioFX.wrong(); game.scene.scenes[0].cameras.main.shake(80, 0.004); return;
     }
     AudioFX.collect();
-    collectedWord += val; l.destroy(); updateWordDisplay();
+    collectedWord += currentLevel.word[collectedWord.length]; // Automágicamente agrega la correcta
+    l.destroy(); updateWordDisplay();
     if (collectedWord === currentLevel.word) {
         AudioFX.win();
         if (window.perfectLevel) { 
