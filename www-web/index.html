@@ -241,8 +241,9 @@
     <div id="power-btn" class="game-btn" style="display:none;" onclick="UI.openShop(true)">⚡</div>
 
     <!-- HUD -->
-    <div class="ui-overlay" style="display:none;">
+    <div class="ui-overlay" style="display:none; flex-wrap: wrap;">
         <div id="ui-lives" style="color:#ff4466;">❤️❤️❤️</div>
+        <div id="ui-inventory" style="color:#00ff99;">⭐0  👻0  ⚡0  ➕0</div>
         <div id="ui-streak" style="color:#ff00ff;">🔥 0</div>
         <div id="ui-coins-game" style="color:#ffff00;">🪙 0</div>
     </div>
@@ -323,6 +324,14 @@
         <button onclick="togglePause()">REANUDAR</button>
         <button class="btn-secondary" onclick="goToMainMenu()">MENÚ PRINCIPAL</button>
     </div>
+
+    <!-- RULETA COFRE -->
+    <div id="roulette-modal" class="modal" style="display:none; z-index:450;">
+        <h2 id="roulette-title" style="color:#ffff00; margin-bottom: 20px;">¡COFRE ENCONTRADO!</h2>
+        <div id="roulette-box" style="font-size: 50px; margin: 20px 0; background: rgba(0,255,255,0.1); padding: 20px; border: 2px solid #00ffff; border-radius: 10px; width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(0,255,255,0.5);">❓</div>
+        <p id="roulette-desc" style="font-size: 14px; color: #ff00ff; max-width: 300px; min-height: 40px; text-align: center;"></p>
+        <button id="roulette-btn" onclick="closeRoulette()" style="display:none;">GUARDAR EN INVENTARIO</button>
+    </div>
 </div>
 
 <script>
@@ -383,6 +392,20 @@
         document.querySelector('.ui-overlay').style.display = 'none';
         game.scene.scenes[0].physics.pause();
         UI.showDashboard();
+    }
+
+    // ── Ruleta ───────────────────────────────────────────────
+    function closeRoulette() {
+        document.getElementById('roulette-modal').style.display = 'none';
+        State.isPaused = false;
+        
+        // Si hay una función de callback pendiente (ej. aprendizaje), la llamamos
+        if (window.rouletteCallback) {
+            window.rouletteCallback();
+            window.rouletteCallback = null;
+        } else {
+            if (!State.isScanning) game.scene.scenes[0].physics.resume();
+        }
     }
 
     // ── Tecla ESC para pausar ────────────────────────────────

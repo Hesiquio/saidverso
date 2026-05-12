@@ -3,7 +3,7 @@
 // Diferencias vs móvil: sin D-Pad visual, controles por teclado
 // ============================================================
 
-let player, enemy, letters, mazeWalls, countdownText, coinsGroup;
+let player, enemy, letters, mazeWalls, countdownText, coinsGroup, chestGroup;
 let currentLevel = null;
 let collectedWord = "";
 let lives = 3;
@@ -51,6 +51,10 @@ class SaidVersoScene extends Phaser.Scene {
         g.fillStyle(0x0d1b4b); g.fillRect(0, 0, 40, 40);
         g.lineStyle(1, 0x00ffff, 0.4); g.strokeRect(1, 1, 38, 38);
         g.generateTexture('wall', 40, 40); g.clear();
+
+        g.fillStyle(0x8B4513); g.fillRect(8, 12, 24, 16);
+        g.fillStyle(0xFFD700); g.fillRect(18, 18, 4, 4);
+        g.generateTexture('chest', 40, 40); g.clear();
 
         g.destroy();
 
@@ -112,6 +116,7 @@ function loadLevel(scene) {
     lives = 3;
     updateLivesUI();
     updateCoinsUI();
+    updateInventoryUI();
 
     // Crear o reutilizar grupos (CRÍTICO para que los colliders no se pierdan)
     if (!mazeWalls) mazeWalls = scene.physics.add.staticGroup();
@@ -122,6 +127,9 @@ function loadLevel(scene) {
 
     if (!coinsGroup) coinsGroup = scene.physics.add.group();
     else coinsGroup.clear(true, true);
+
+    if (!chestGroup) chestGroup = scene.physics.add.group();
+    else chestGroup.clear(true, true);
 
     const mazeWidth = currentLevel.maze[0].length * 40;
     const mazeHeight = currentLevel.maze.length * 40;
@@ -138,13 +146,19 @@ function loadLevel(scene) {
         });
     });
 
-    // Monedas
+    // Monedas y Cofre
     for (let i = 0; i < 5; i++) {
         const p = Phaser.Utils.Array.RemoveRandomElement(freeSpaces);
         if (!p) break;
         const c = scene.add.text(p.x, p.y, '🪙', { fontSize: '16px' }).setOrigin(0.5).setDepth(4);
         scene.physics.add.existing(c);
         coinsGroup.add(c);
+    }
+
+    const cp = Phaser.Utils.Array.RemoveRandomElement(freeSpaces);
+    if (cp) {
+        const chest = scene.physics.add.sprite(cp.x, cp.y, 'chest').setDepth(4);
+        chestGroup.add(chest);
     }
 
     // Letras cifradas
@@ -165,6 +179,7 @@ function loadLevel(scene) {
         // Overlaps
         scene.physics.add.overlap(player, enemy, handleEnemyCollision, null, scene);
         scene.physics.add.overlap(player, coinsGroup, collectCoin, null, scene);
+        scene.physics.add.overlap(player, chestGroup, collectChest, null, scene);
         scene.physics.add.overlap(player, letters, collectLetter, null, scene);
     } else {
         player.setPosition(freeSpaces[0].x, freeSpaces[0].y);
@@ -267,10 +282,63 @@ function collectLetter(p, l) {
     AudioFX.collect();
     collectedWord += val; l.destroy(); updateWordDisplay();
     if (collectedWord === currentLevel.word) {
-        if (lives === 3) { State.coins += 20; updateCoinsUI(); }
         AudioFX.win();
-        showLearningPhase();
+        if (lives === 3) { 
+            State.coins += 20; updateCoinsUI(); 
+            window.startRoulette("¡BONO DE NIVEL PERFECTO!", showLearningPhase);
+        } else {
+            showLearningPhase();
+        }
     }
+}
+
+// ---- Cofres y Ruleta ----
+function collectChest(p, chest) {
+    AudioFX.powerup(); chest.destroy();
+    window.startRoulette("¡COFRE ENCONTRADO!");
+}
+
+window.startRoulette = function(title, callback = null) {
+    game.scene.scenes[0].physics.pause();
+    State.isPaused = true;
+    window.rouletteCallback = callback;
+    
+    document.getElementById('roulette-title').innerText = title;
+    document.getElementById('roulette-modal').style.display = 'flex';
+    document.getElementById('roulette-btn').style.display = 'none';
+    const box = document.getElementById('roulette-box');
+    const desc = document.getElementById('roulette-desc');
+    desc.innerText = "Girando...";
+    
+    const powers = [
+        { id: 'star', icon: '⭐', text: 'ESTRELLA: Neutraliza al centinela.' },
+        { id: 'ghost', icon: '👻', text: 'FANTASMA: Atraviesa paredes.' },
+        { id: 'speed', icon: '⚡', text: 'VELOCIDAD: Corre más rápido.' },
+        { id: 'life', icon: '❤️', text: 'VIDA EXTRA: Suma un corazón.' }
+    ];
+    
+    let spins = 0;
+    AudioFX.play(600, 'square', 0.1, 0.5);
+    
+    const interval = setInterval(() => {
+        box.innerText = powers[spins % powers.length].icon;
+        AudioFX.play(800 + (spins * 20), 'sine', 0.02, 0.05);
+        spins++;
+        if (spins > 20) {
+            clearInterval(interval);
+            const finalPower = powers[Math.floor(Math.random() * powers.length)];
+            box.innerText = finalPower.icon;
+            desc.innerText = `¡Obtuviste ${finalPower.icon}!\n${finalPower.text}`;
+            document.getElementById('roulette-btn').style.display = 'inline-block';
+            
+            AudioFX.powerup();
+            State.inventory[finalPower.id]++;
+            State.save();
+            const username = localStorage.getItem('cq_username');
+            if (username) Database.saveProfile(username, State);
+            updateInventoryUI();
+        }
+    }, 100);
 }
 
 // ---- Fase de aprendizaje ----
@@ -359,6 +427,13 @@ function runIntro(scene) {
 // ---- UI Helpers ----
 function updateLivesUI()  { const el = document.getElementById('ui-lives');      if (el) el.innerText = '❤️'.repeat(lives); }
 function updateCoinsUI()  { const el = document.getElementById('ui-coins-game'); if (el) el.innerText = `🪙 ${State.coins}`; }
+function updateInventoryUI() {
+    const el = document.getElementById('ui-inventory');
+    if (el) {
+        const i = State.inventory || { star:0, ghost:0, speed:0, life:0 };
+        el.innerText = `⭐${i.star}  👻${i.ghost}  ⚡${i.speed}  ➕${i.life}`;
+    }
+}
 function updateWordDisplay() {
     const shown = collectedWord.split('').join(' ');
     const blanks = '_ '.repeat(currentLevel.word.length - collectedWord.length).trim();
@@ -373,6 +448,7 @@ window.startGame = function () {
     document.querySelector('.ui-overlay').style.display = 'flex';
     document.getElementById('pause-btn').style.display  = 'flex';
     document.getElementById('power-btn').style.display  = 'flex';
+    updateInventoryUI();
     // Recargar nivel con datos frescos de Supabase (ya sincronizados en background)
     loadLevel(game.scene.scenes[0]);
     startScanMode();
