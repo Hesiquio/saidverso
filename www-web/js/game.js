@@ -535,9 +535,12 @@ function collectLetter(p, l) {
     if (!isAllowed) {
         AudioFX.wrong(); game.scene.scenes[0].cameras.main.shake(80, 0.004); return;
     }
+    
     AudioFX.collect();
-    collectedWord += currentLevel.word[collectedWord.length]; // Automágicamente agrega la correcta
-    l.destroy(); updateWordDisplay();
+    // La llave permite recoger cualquier letra, pero siempre suma la que sigue en la palabra
+    collectedWord += currentLevel.word[collectedWord.length];
+    l.destroy(); 
+    updateWordDisplay();
     if (collectedWord === currentLevel.word) {
         AudioFX.win();
         if (window.perfectLevel) { 
