@@ -116,7 +116,11 @@ const UI = {
         list.innerHTML = "<p style='color:#00ffff;'>Cargando...</p>";
         const data = await Database.getRanking();
         if (!data.length) { list.innerHTML = "<p>Sin datos aún. ¡Sé el primero!</p>"; return; }
-        list.innerHTML = data.map((r, i) => {
+        const currentUser = localStorage.getItem('cq_username');
+        const userIndex = data.findIndex(r => r.username === currentUser);
+        
+        const top5 = data.slice(0, 5);
+        let html = top5.map((r, i) => {
             const level = (r.level || 0) + 1;
             const streak = r.streak || 0;
             const medal = ['🥇','🥈','🥉'][i] || `${i+1}.`;
@@ -124,5 +128,17 @@ const UI = {
                 <span>${medal} ${r.username}</span><span>N${level} | 🔥 ${streak}</span>
             </div>`;
         }).join('');
+
+        if (userIndex >= 5) {
+            const r = data[userIndex];
+            const level = (r.level || 0) + 1;
+            const streak = r.streak || 0;
+            html += `<div style="text-align:center; color:#00ffff; font-weight:bold; margin: 4px 0;">...</div>`;
+            html += `<div style="display:flex;justify-content:space-between;padding:12px;background:rgba(255,255,0,0.1);border:1px solid #ffff00;color:#ffff00;border-radius:8px;">
+                <span>${userIndex + 1}. ${r.username} (Tú)</span><span>N${level} | 🔥 ${streak}</span>
+            </div>`;
+        }
+        
+        list.innerHTML = html;
     }
 };
