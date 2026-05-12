@@ -495,7 +495,12 @@ function updateInventoryUI() {
     const el = document.getElementById('ui-inventory');
     if (el) {
         const i = State.inventory || { star:0, ghost:0, speed:0, life:0 };
-        el.innerText = `❤️${i.life}  ⭐${i.star}  👻${i.ghost}  ⚡${i.speed}`;
+        el.innerHTML = `
+            <span onclick="window.tryActivatePower('life')" style="cursor:pointer;" title="Usar Vida Extra [4]">❤️${i.life}</span> &nbsp;&nbsp;
+            <span onclick="window.tryActivatePower('star')" style="cursor:pointer;" title="Usar Estrella [1]">⭐${i.star}</span> &nbsp;&nbsp;
+            <span onclick="window.tryActivatePower('ghost')" style="cursor:pointer;" title="Usar Fantasma [2]">👻${i.ghost}</span> &nbsp;&nbsp;
+            <span onclick="window.tryActivatePower('speed')" style="cursor:pointer;" title="Usar Velocidad [3]">⚡${i.speed}</span>
+        `;
     }
 }
 function updateWordDisplay() {
