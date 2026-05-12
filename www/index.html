@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SaidVerso v3.4</title>
+    <title>SaidVerso v3.5</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -52,10 +52,11 @@
 </div>
 
 <script>
-// --- MOTOR DE SONIDO (8-BIT) ---
+// --- MOTOR DE SONIDO (MEJORADO) ---
 const AudioFX = {
     ctx: new (window.AudioContext || window.webkitAudioContext)(),
     play(freq, type, duration, vol = 0.1) {
+        if (this.ctx.state === 'suspended') this.ctx.resume();
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = type;
@@ -65,15 +66,15 @@ const AudioFX = {
         osc.connect(gain); gain.connect(this.ctx.destination);
         osc.start(); osc.stop(this.ctx.currentTime + duration);
     },
-    collect() { this.play(880, 'square', 0.1); },
-    hit() { this.play(150, 'sawtooth', 0.3, 0.2); },
+    collect() { this.play(880, 'sine', 0.1); },
+    hit() { this.play(100, 'sawtooth', 0.4, 0.2); },
     win() { 
         this.play(523, 'sine', 0.1);
         setTimeout(() => this.play(659, 'sine', 0.1), 100);
         setTimeout(() => this.play(783, 'sine', 0.3), 200);
     },
-    correct() { this.play(1200, 'sine', 0.2); },
-    wrong() { this.play(100, 'square', 0.4); }
+    correct() { this.play(1000, 'sine', 0.2); },
+    wrong() { this.play(200, 'sine', 0.15, 0.1); } // Sonido mucho más suave (Pomp)
 };
 
 const SUPABASE_URL = "https://cqsveyvxozegcxbidvqh.supabase.co";
@@ -130,7 +131,6 @@ function showInstructions() {
 }
 
 function startGame() {
-    if (AudioFX.ctx.state === 'suspended') AudioFX.ctx.resume();
     document.getElementById('instruction-screen').style.display = 'none';
     game.scene.scenes[0].physics.resume();
 }
@@ -145,12 +145,12 @@ function loadLevel(scene) {
     mazeWalls = scene.physics.add.staticGroup();
     currentLevel.maze.forEach((row, rIdx) => {
         row.forEach((cell, cIdx) => {
-            if (cell === 1) mazeWalls.create(cIdx * 40 + 20, rIdx * 40 + 160, 'wall');
+            if (cell === 1) mazeWalls.create(cIdx * 40 + 20, rIdx * 40 + 160, 'wall').setDepth(1);
         });
     });
     if (!player) {
-        player = scene.physics.add.sprite(60, 200, 'robot');
-        enemy = scene.physics.add.sprite(380, 200, 'enemy');
+        player = scene.physics.add.sprite(60, 200, 'robot').setDepth(2);
+        enemy = scene.physics.add.sprite(380, 200, 'enemy').setDepth(2);
         player.setCollideWorldBounds(true);
         enemy.setCollideWorldBounds(true);
         player.setBodySize(18, 18);
@@ -166,15 +166,21 @@ function loadLevel(scene) {
     setupLetters(scene);
     scene.physics.add.overlap(player, letters, collectLetter, null, scene);
     if (!uiTextWord) {
-        uiTextWord = scene.add.text(225, 45, "", { fontSize: '24px', color: '#ffffff', fontWeight: 'bold' }).setOrigin(0.5);
-        uiTextHint = scene.add.text(225, 80, "", { fontSize: '13px', color: '#ff00ff' }).setOrigin(0.5);
-        uiTextLevel = scene.add.text(20, 110, "", { fontSize: '12px', color: '#00ffff' });
+        uiTextWord = scene.add.text(225, 45, "", { fontSize: '24px', color: '#ffffff', fontWeight: 'bold' }).setOrigin(0.5).setDepth(10);
+        uiTextHint = scene.add.text(225, 80, "", { fontSize: '13px', color: '#ff00ff' }).setOrigin(0.5).setDepth(10);
+        uiTextLevel = scene.add.text(20, 110, "", { fontSize: '12px', color: '#00ffff' }).setDepth(10);
     }
-    uiTextWord.setText(collectedWord + "_ ".repeat(currentLevel.word.length - collectedWord.length));
+    updateWordDisplay();
     uiTextHint.setText("REGLA: SALTA 1 LETRA (A->B)");
     uiTextLevel.setText(`NIVEL: ${currentLevelIndex + 1}`);
     updateTask();
     if (!scene.cursors) { createDPad(scene); scene.cursors = scene.input.keyboard.createCursorKeys(); }
+}
+
+function updateWordDisplay() {
+    let display = collectedWord.split('').join(' ') + " ";
+    display += "_ ".repeat(currentLevel.word.length - collectedWord.length);
+    uiTextWord.setText(display.trim());
 }
 
 function handleEnemyHit() {
@@ -184,10 +190,7 @@ function handleEnemyHit() {
     this.cameras.main.shake(300, 0.02);
     player.setPosition(60, 200);
     enemy.setPosition(380, 200);
-    if (lives <= 0) {
-        alert("¡SISTEMA DAÑADO! Reintentando misión...");
-        window.location.reload();
-    }
+    if (lives <= 0) { alert("¡SISTEMA DAÑADO! Reintentando misión..."); window.location.reload(); }
 }
 
 function updateLivesUI() {
@@ -217,7 +220,7 @@ function setupLetters(scene) {
     word.split('').forEach((char) => {
         const ciphered = String.fromCharCode(((char.charCodeAt(0) - 65 + shift) % 26) + 65);
         let pos = Phaser.Utils.Array.RemoveRandomElement(freeSpaces) || {x:225, y:400};
-        let l = scene.add.text(pos.x, pos.y, ciphered, { fontSize: '22px', color: '#ffff00', fontWeight: 'bold' }).setOrigin(0.5);
+        let l = scene.add.text(pos.x, pos.y, ciphered, { fontSize: '22px', color: '#ffff00', fontWeight: 'bold' }).setOrigin(0.5).setDepth(3);
         scene.physics.add.existing(l);
         l.setData('val', char);
         letters.add(l);
@@ -230,11 +233,9 @@ function collectLetter(p, l) {
         AudioFX.collect();
         collectedWord += val;
         l.destroy();
-        uiTextWord.setText(collectedWord + "_ ".repeat(currentLevel.word.length - collectedWord.length));
-        if (collectedWord === currentLevel.word) {
-            AudioFX.win();
-            showLearningPhase();
-        } else updateTask();
+        updateWordDisplay();
+        if (collectedWord === currentLevel.word) { AudioFX.win(); showLearningPhase(); }
+        else updateTask();
     } else { 
         AudioFX.wrong();
         this.cameras.main.shake(100, 0.005); 
@@ -267,15 +268,8 @@ function checkQuiz(selected, correct) {
         if (currentLevelIndex < allLevels.length) {
             loadLevel(game.scene.scenes[0]);
             game.scene.scenes[0].physics.resume();
-        } else {
-            alert("¡Felicidades Explorador! Has completado SaidVerso.");
-            saveScore();
-            window.location.reload();
-        }
-    } else { 
-        AudioFX.wrong();
-        alert("¡Error! Lee de nuevo el dato curioso."); 
-    }
+        } else { alert("¡Felicidades Explorador!"); saveScore(); window.location.reload(); }
+    } else { AudioFX.wrong(); alert("¡Error! Lee de nuevo el dato curioso."); }
 }
 
 async function saveScore() {
@@ -293,11 +287,16 @@ function updateTask() {
 function createDPad(scene) {
     const x = 320, y = 650;
     const btn = (bx, by, dir, symbol) => {
-        let b = scene.add.circle(bx, by, 40, 0x00ffff, 0.1).setInteractive();
+        let b = scene.add.circle(bx, by, 40, 0x00ffff, 0.1).setInteractive().setDepth(100);
         b.setStrokeStyle(2, 0x00ffff);
-        scene.add.text(bx, by, symbol, { fontSize: '28px', color: '#00ffff' }).setOrigin(0.5);
-        b.on('pointerdown', () => dpad[dir] = true);
-        b.on('pointerup', () => dpad[dir] = false);
+        scene.add.text(bx, by, symbol, { fontSize: '28px', color: '#00ffff' }).setOrigin(0.5).setDepth(101);
+        
+        // CORRECCIÓN DE BUG DE MOVIMIENTO: Resetear si el dedo se sale o suelta fuera
+        const reset = () => { dpad[dir] = false; b.setAlpha(1); };
+        b.on('pointerdown', () => { dpad[dir] = true; b.setAlpha(0.5); });
+        b.on('pointerup', reset);
+        b.on('pointerout', reset);
+        b.on('pointerupoutside', reset);
     };
     btn(x, y-60, 'up', '▲'); btn(x, y+60, 'down', '▼');
     btn(x-60, y, 'left', '◀'); btn(x+70, y, 'right', '▶');

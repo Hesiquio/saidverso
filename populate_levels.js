@@ -6,6 +6,7 @@ const SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
 const data = [
+  // ... (Toda la lista de las 100 palabras con sus datos curiosos)
   { w: "ROBOT", t: "Los robots son máquinas que pueden realizar tareas automáticamente.", q: "¿Qué hace un robot?", o: ["Come plantas", "Realiza tareas solo", "Habla con animales"], c: 1 },
   { w: "NASA", t: "La NASA explora el espacio exterior buscando nuevos mundos.", q: "¿Qué busca la NASA?", o: ["Peces", "Nuevos mundos", "Tesoros piratas"], c: 1 },
   { w: "MARTE", t: "Marte es el cuarto planeta del sistema solar y es de color rojo.", q: "¿Qué número de planeta es Marte?", o: ["Primero", "Segundo", "Cuarto"], c: 2 },
@@ -108,21 +109,72 @@ const data = [
   { w: "SAD", t: "SaidVerso es tu mundo de aprendizaje y exploración.", q: "¿Cómo se llama este juego?", o: ["SaidVerso", "Robot Game", "Mundo Pixel"], c: 0 }
 ];
 
-// Laberinto Vertical Optimizado (11x15)
-const verticalMaze = [
-  [1,1,1,1,1,1,1,1,1,1,1],
-  [1,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,1,1,0,1,1,1,0,1],
-  [1,0,0,0,1,0,1,0,0,0,1],
-  [1,1,1,0,1,0,1,0,1,1,1],
-  [1,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,1,1,1,1,1,1,0,1],
-  [1,0,0,0,0,0,0,0,0,0,1],
-  [1,1,1,0,1,1,1,0,1,1,1],
-  [1,0,0,0,1,0,1,0,0,0,1],
-  [1,0,1,1,1,0,1,1,1,0,1],
-  [1,0,0,0,0,0,0,0,0,0,1],
-  [1,1,1,1,1,1,1,1,1,1,1]
+// --- PLANTILLAS DE MUNDOS ---
+const mazes = [
+  // 1. Mundo Espacial (Abierto)
+  [
+    [1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,1,1,0,1,1,1,0,1],
+    [1,0,0,0,1,0,1,0,0,0,1],
+    [1,1,1,0,1,0,1,0,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,1,1,1,1,1,1,0,1],
+    [1,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,0,1,1,1,0,1,1,1],
+    [1,0,0,0,1,0,1,0,0,0,1],
+    [1,0,1,1,1,0,1,1,1,0,1],
+    [1,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1]
+  ],
+  // 2. Mundo Microchip (Pasillos estrechos)
+  [
+    [1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,1,0,0,0,1,0,1],
+    [1,1,1,0,1,0,1,0,1,0,1],
+    [1,0,0,0,0,0,1,0,0,0,1],
+    [1,0,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,0,1],
+    [1,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,1,0,0,0,1,0,1],
+    [1,1,1,0,1,0,1,0,1,0,1],
+    [1,0,0,0,0,0,1,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1]
+  ],
+  // 3. Mundo Red (Z-Zigzag)
+  [
+    [1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,1,0,0,1],
+    [1,1,1,1,1,1,0,1,0,1,1],
+    [1,0,0,0,0,0,0,0,0,0,1],
+    [1,1,0,1,1,1,1,1,1,1,1],
+    [1,0,0,1,0,0,0,0,0,0,1],
+    [1,0,1,1,1,1,1,1,1,0,1],
+    [1,0,0,0,0,0,0,1,0,0,1],
+    [1,1,1,1,1,1,0,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,1,1,1,1,1,1,0,1],
+    [1,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1]
+  ],
+  // 4. Mundo Científico (Simétrico)
+  [
+    [1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,1,0,1,0,0,0,1],
+    [1,0,1,0,1,0,1,0,1,0,1],
+    [1,0,1,0,0,0,0,0,1,0,1],
+    [1,0,1,1,1,0,1,1,1,0,1],
+    [1,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,0,1,1,1,0,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,1,1,0,1,1,1,0,1],
+    [1,0,1,0,0,0,0,0,1,0,1],
+    [1,0,1,0,1,0,1,0,1,0,1],
+    [1,0,0,0,1,0,1,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1]
+  ]
 ];
 
 const niveles = data.map((item, index) => ({
@@ -131,17 +183,17 @@ const niveles = data.map((item, index) => ({
     word: item.w,
     hint: `REGLA: SALTA 1 LETRA (A->B)`,
     shift: 1,
-    maze: verticalMaze,
+    maze: mazes[index % mazes.length], // ROTA EL MAPA CADA NIVEL
     learning: { text: item.t, question: item.q, options: item.o, correct: item.c }
   }
 }));
 
 async function upload() {
-  console.log("🚀 Sincronizando SaidVerso Vertical (100 Niveles)...");
+  console.log("🚀 Sincronizando SaidVerso Multi-Mundo...");
   await supabase.from('niveles').delete().neq('id', 0);
   const { error } = await supabase.from('niveles').insert(niveles);
   if (error) console.error("❌ Error:", error.message);
-  else console.log("✅ SaidVerso está listo y optimizado.");
+  else console.log("✅ SaidVerso tiene ahora 100 niveles con mapas rotativos.");
 }
 
 upload();
