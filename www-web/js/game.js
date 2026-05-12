@@ -146,6 +146,10 @@ function loadLevel(scene) {
         });
     });
 
+    if (freeSpaces.length > 0) {
+        window.playerStartPos = { x: freeSpaces[0].x, y: freeSpaces[0].y };
+    }
+
     // Monedas y Cofre
     for (let i = 0; i < 5; i++) {
         const p = Phaser.Utils.Array.RemoveRandomElement(freeSpaces);
@@ -249,7 +253,14 @@ function handleEnemyCollision() {
     const el = document.getElementById('ui-streak');
     if (el) el.innerText = '🔥 0';
     game.scene.scenes[0].cameras.main.shake(300, 0.02);
-    player.setPosition(80, 160);
+    
+    // Regresar al inicio del laberinto, no a una posición fija
+    if (window.playerStartPos) {
+        player.setPosition(window.playerStartPos.x, window.playerStartPos.y);
+    } else {
+        player.setPosition(400, 300);
+    }
+    
     if (lives <= 0) { alert('¡Misión Fallida!'); window.location.reload(); }
 }
 
