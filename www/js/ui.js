@@ -14,7 +14,13 @@ let isShopInGame = false;
 
 const UI = {
     showDashboard() {
-        const name = localStorage.getItem('cq_username') || "EXPLORADOR";
+        let name = localStorage.getItem('cq_username');
+        if (!name || name === "EXPLORADOR") {
+            // Si no hay nombre, creamos uno temporal para el ranking
+            name = "EXPLORADOR_" + Math.floor(Math.random()*999);
+            localStorage.setItem('cq_username', name);
+        }
+        
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('dashboard-screen').style.display = 'flex';
         document.getElementById('dash-welcome').innerText = `HOLA, ${name}`;
@@ -22,6 +28,18 @@ const UI = {
         document.getElementById('dash-streak').innerText = `🔥 ${State.streak}`;
         document.getElementById('dash-coins').innerText = `🪙 ${State.coins}`;
         document.getElementById('motivational-phrase').innerText = `"${phrases[Math.floor(Math.random()*phrases.length)]}"`;
+        
+        const badges = document.getElementById('dash-badges');
+        if(badges) {
+            badges.innerHTML = "";
+            if (State.currentLevelIndex >= 0) badges.innerHTML += '<span class="badge">🎖️ NOVATO</span>';
+            if (State.currentLevelIndex >= 10) badges.innerHTML += '<span class="badge">🚀 EXPERTO</span>';
+            if (State.currentLevelIndex >= 50) badges.innerHTML += '<span class="badge">🔮 MAESTRO</span>';
+        }
+
+        // Guardar inmediatamente para asegurar presencia en el ranking
+        Database.saveScore(name, State.currentLevelIndex, State.streak, State.coins);
+
         if (Math.random() > 0.8) this.showHealthTip();
     },
 
