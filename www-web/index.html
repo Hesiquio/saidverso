@@ -330,7 +330,7 @@
         <h2 id="roulette-title" style="color:#ffff00; margin-bottom: 20px;">¡COFRE ENCONTRADO!</h2>
         <div id="roulette-box" style="font-size: 50px; margin: 20px 0; background: rgba(0,255,255,0.1); padding: 20px; border: 2px solid #00ffff; border-radius: 10px; width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(0,255,255,0.5);">❓</div>
         <p id="roulette-desc" style="font-size: 14px; color: #ff00ff; max-width: 300px; min-height: 40px; text-align: center;"></p>
-        <button id="roulette-btn" onclick="closeRoulette()" style="display:none;">GUARDAR EN INVENTARIO</button>
+        <div id="roulette-actions" style="display:none; flex-direction:column; width:100%; gap:8px; margin-top:10px; align-items:center;"></div>
     </div>
 </div>
 
@@ -395,9 +395,13 @@
     }
 
     // ── Ruleta ───────────────────────────────────────────────
-    function closeRoulette() {
+    function closeRoulette(useNow = false) {
         document.getElementById('roulette-modal').style.display = 'none';
         State.isPaused = false;
+        
+        if (useNow && window.lastRolledPower) {
+            window.tryActivatePower(window.lastRolledPower);
+        }
         
         // Si hay una función de callback pendiente (ej. aprendizaje), la llamamos
         if (window.rouletteCallback) {

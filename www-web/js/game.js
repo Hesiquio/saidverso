@@ -313,10 +313,11 @@ window.startRoulette = function(title, callback = null) {
     game.scene.scenes[0].physics.pause();
     State.isPaused = true;
     window.rouletteCallback = callback;
+    window.lastRolledPower = null;
     
     document.getElementById('roulette-title').innerText = title;
     document.getElementById('roulette-modal').style.display = 'flex';
-    document.getElementById('roulette-btn').style.display = 'none';
+    document.getElementById('roulette-actions').style.display = 'none';
     const box = document.getElementById('roulette-box');
     const desc = document.getElementById('roulette-desc');
     desc.innerText = "Girando...";
@@ -340,7 +341,20 @@ window.startRoulette = function(title, callback = null) {
             const finalPower = powers[Math.floor(Math.random() * powers.length)];
             box.innerText = finalPower.icon;
             desc.innerText = `¡Obtuviste ${finalPower.icon}!\n${finalPower.text}`;
-            document.getElementById('roulette-btn').style.display = 'inline-block';
+            window.lastRolledPower = finalPower.id;
+            
+            const actionsDiv = document.getElementById('roulette-actions');
+            actionsDiv.style.display = 'flex';
+            if (callback) {
+                // Es un bono post-nivel, no se puede usar ahora
+                actionsDiv.innerHTML = `<button onclick="closeRoulette(false)" style="width:80%;">CONTINUAR</button>`;
+            } else {
+                // Cofre en medio del nivel
+                actionsDiv.innerHTML = `
+                    <button onclick="closeRoulette(false)" style="width:80%;">GUARDAR EN INVENTARIO</button>
+                    <button class="btn-secondary" onclick="closeRoulette(true)" style="width:80%;">USAR AHORA</button>
+                `;
+            }
             
             AudioFX.powerup();
             State.inventory[finalPower.id]++;
