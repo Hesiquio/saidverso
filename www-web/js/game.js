@@ -588,6 +588,7 @@ window.startGame = function () {
     if (!game || !game.scene.scenes[0]) { setTimeout(window.startGame, 100); return; }
     document.getElementById('dashboard-screen').style.display = 'none';
     document.querySelector('.ui-overlay').style.display = 'flex';
+    document.querySelector('.ui-overlay-bottom').style.display = 'flex';
     document.getElementById('pause-btn').style.display  = 'flex';
     document.getElementById('power-btn').style.display  = 'flex';
     updateInventoryUI();
