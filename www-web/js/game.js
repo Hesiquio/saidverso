@@ -9,27 +9,153 @@ let collectedWord = "";
 let lives = 3;
 let uiTextWord, uiTextHint;
 
-// Niveles de emergencia (se reemplazan con datos de Supabase)
-let allLevels = [{
-    word: "SAID",
-    hint: "REGLA: +1",
-    shift: 1,
-    maze: [
-        [1,1,1,1,1,1,1,1,1,1],
-        [1,0,0,0,1,0,0,0,0,1],
-        [1,0,1,0,1,0,1,1,0,1],
-        [1,0,1,0,0,0,0,1,0,1],
-        [1,0,1,1,1,1,0,1,0,1],
-        [1,0,0,0,0,0,0,0,0,1],
-        [1,1,1,1,1,1,1,1,1,1]
+// Pool de 10 laberintos bien diseñados (10x12)
+// 0 = Camino, 1 = Muro
+const mazesPool = [
+    // 1. El Circuito (Abierto)
+    [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
+        [1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 1, 1, 1, 1, 1, 0, 1],
+        [1, 0, 1, 0, 1, 1, 0, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     ],
-    learning: {
-        text: "¡Bienvenido! En este juego descifrarás palabras usando criptografía.",
-        question: "Si la regla es +1, ¿qué letra es 'B' descifrada?",
-        options: ["A", "C", "D"],
-        correct: 0
-    }
-}];
+    // 2. Columnas
+    [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 0, 1, 0, 1, 0, 0, 1],
+        [1, 0, 1, 0, 1, 0, 1, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 1, 0, 1, 0, 1, 0, 1],
+        [1, 0, 0, 1, 0, 1, 0, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    ],
+    // 3. El Zig-Zag
+    [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 1, 1, 1, 1, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 1, 1, 1, 1, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 1, 1, 1, 1, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    ],
+    // 4. La Cruz
+    [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 1, 1, 0, 0, 0, 1],
+        [1, 0, 0, 0, 1, 1, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 0, 1, 1, 0, 1, 1, 1],
+        [1, 1, 1, 0, 1, 1, 0, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 1, 1, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    ],
+    // 5. Los Pequeños Cuartos
+    [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+        [1, 1, 0, 1, 1, 1, 0, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 0, 1, 1, 1, 0, 1, 1, 1],
+        [1, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    ],
+    // 6. El Peine
+    [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 0, 1, 0, 1, 0, 1, 1],
+        [1, 0, 1, 0, 1, 0, 1, 0, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+        [1, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    ],
+    // 7. El Diamante
+    [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 1, 1, 1, 1, 0, 0, 1],
+        [1, 0, 1, 1, 1, 1, 1, 1, 0, 1],
+        [1, 0, 0, 1, 1, 1, 1, 0, 0, 1],
+        [1, 0, 0, 0, 1, 1, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    ],
+    // 8. Líneas Discontinuas
+    [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 1, 1, 0, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 0, 1, 1, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 1, 1, 0, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    ],
+    // 9. El Vacío Central
+    [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 1, 1, 1, 1, 1, 0, 1],
+        [1, 0, 1, 0, 0, 0, 0, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 0, 0, 0, 0, 1, 0, 1],
+        [1, 0, 1, 1, 1, 1, 1, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    ],
+    // 10. Laberinto de Pasillos
+    [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+        [1, 1, 1, 1, 0, 1, 0, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 1, 1, 0, 1, 1, 0, 1],
+        [1, 0, 0, 0, 1, 0, 1, 0, 0, 1],
+        [1, 1, 1, 0, 1, 0, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    ]
+];
+
+// 11. Mapa especial "Campo Abierto" (Cada 5 niveles)
+const openMaze = [
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+];
+
+let lastMazeIndex = -1;
+
+let allLevels = [
+    { word: "SAID", hint: "REGLA: +1", shift: 1, learning: { text: "¡Bienvenido! Criptografía básica.", question: "Si A es B, ¿qué es B?", options: ["C", "A", "D"], correct: 0 } },
+    { word: "HOLA", hint: "REGLA: +1", shift: 1, learning: { text: "Buen trabajo.", question: "Si H es I, ¿qué es O?", options: ["P", "N", "M"], correct: 0 } },
+    { word: "AMIGO", hint: "REGLA: +2", shift: 2, learning: { text: "Avanzas rápido.", question: "Si A (+2) es C, ¿qué es B?", options: ["D", "C", "E"], correct: 0 } },
+    { word: "CASA", hint: "REGLA: +1", shift: 1, learning: { text: "Protege tu hogar.", question: "Si C es D, ¿qué es Z?", options: ["A", "B", "Y"], correct: 0 } },
+    { word: "PERRO", hint: "REGLA: +3", shift: 3, learning: { text: "Los perros son leales.", question: "Si A (+3) es D, ¿qué es B?", options: ["E", "D", "F"], correct: 0 } }
+];
 
 class SaidVersoScene extends Phaser.Scene {
     constructor() { super('GameScene'); }
@@ -63,7 +189,7 @@ class SaidVersoScene extends Phaser.Scene {
 
         // Teclas
         this.cursors = this.input.keyboard.createCursorKeys();
-        this.wasd    = this.input.keyboard.addKeys({ up: 'W', down: 'S', left: 'A', right: 'D' });
+        this.wasd = this.input.keyboard.addKeys({ up: 'W', down: 'S', left: 'A', right: 'D' });
         this.powerKeys = this.input.keyboard.addKeys({
             star: Phaser.Input.Keyboard.KeyCodes.ONE,
             ghost: Phaser.Input.Keyboard.KeyCodes.TWO,
@@ -104,21 +230,43 @@ class SaidVersoScene extends Phaser.Scene {
         const speed = State.activePower === 'speed' ? 300 : 180;
         const { cursors, wasd } = this;
 
-        if (cursors.left.isDown  || wasd.left.isDown)  player.setVelocityX(-speed);
+        if (cursors.left.isDown || wasd.left.isDown) player.setVelocityX(-speed);
         else if (cursors.right.isDown || wasd.right.isDown) player.setVelocityX(speed);
-        if (cursors.up.isDown    || wasd.up.isDown)    player.setVelocityY(-speed);
-        else if (cursors.down.isDown  || wasd.down.isDown)  player.setVelocityY(speed);
+        if (cursors.up.isDown || wasd.up.isDown) player.setVelocityY(-speed);
+        else if (cursors.down.isDown || wasd.down.isDown) player.setVelocityY(speed);
 
         if (enemy.active) {
-            if (State.activePower === 'star') enemy.setVelocity(0);
-            else this.physics.moveToObject(enemy, player, 80);
+            if (State.activePower === 'star') {
+                enemy.setVelocity(0);
+            } else {
+                // En el nivel de campo abierto (cada 5), el centinela es más lento para dar oportunidad de esquive
+                const eSpeed = (currentLevel.maze === openMaze) ? 60 : 90;
+                this.physics.moveToObject(enemy, player, eSpeed);
+            }
         }
     }
 }
 
 // ---- Carga de nivel ----
 function loadLevel(scene) {
-    currentLevel = allLevels[State.currentLevelIndex] || allLevels[0];
+    currentLevel = allLevels[State.currentLevelIndex % allLevels.length] || allLevels[0];
+
+    // Lógica de mapas: Cada 5 niveles sale el mapa de "Campo Abierto" (Tipo Serpiente)
+    // NOTA: Añadimos index 0 temporalmente para que el usuario lo pruebe de inmediato
+    if (State.currentLevelIndex === 0 || (State.currentLevelIndex + 1) % 5 === 0) {
+        currentLevel.maze = openMaze;
+        lastMazeIndex = -1; // Reset para permitir cualquier mapa en el nivel siguiente
+    } else {
+        // Asignar un laberinto aleatorio del pool sin repetir el anterior
+        let mazeIdx;
+        do {
+            mazeIdx = Math.floor(Math.random() * mazesPool.length);
+        } while (mazeIdx === lastMazeIndex && mazesPool.length > 1);
+
+        lastMazeIndex = mazeIdx;
+        currentLevel.maze = mazesPool[mazeIdx];
+    }
+
     collectedWord = "";
     lives = 3;
     window.perfectLevel = true;

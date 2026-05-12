@@ -11,26 +11,153 @@ let uiTextWord, uiTextHint;
 let dpad = { up: false, down: false, left: false, right: false };
 
 // Niveles de emergencia (se reemplazan con datos de Supabase)
-let allLevels = [{
-    word: "SAID",
-    hint: "REGLA: +1",
-    shift: 1,
-    maze: [
-        [1,1,1,1,1,1,1,1,1,1],
-        [1,0,0,0,1,0,0,0,0,1],
-        [1,0,1,0,1,0,1,1,0,1],
-        [1,0,1,0,0,0,0,1,0,1],
-        [1,0,1,1,1,1,0,1,0,1],
-        [1,0,0,0,0,0,0,0,0,1],
-        [1,1,1,1,1,1,1,1,1,1]
+// Pool de 10 laberintos bien diseñados (10x12)
+// 0 = Camino, 1 = Muro
+const mazesPool = [
+    // 1. El Circuito (Abierto)
+    [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
+        [1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 1, 1, 1, 1, 1, 0, 1],
+        [1, 0, 1, 0, 1, 1, 0, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     ],
-    learning: {
-        text: "¡Bienvenido! En este juego descifrarás palabras usando criptografía.",
-        question: "Si la regla es +1, ¿qué letra es 'B' descifrada?",
-        options: ["A", "C", "D"],
-        correct: 0
-    }
-}];
+    // 2. Columnas
+    [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 0, 1, 0, 1, 0, 0, 1],
+        [1, 0, 1, 0, 1, 0, 1, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 1, 0, 1, 0, 1, 0, 1],
+        [1, 0, 0, 1, 0, 1, 0, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    ],
+    // 3. El Zig-Zag
+    [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 1, 1, 1, 1, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 1, 1, 1, 1, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 1, 1, 1, 1, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    ],
+    // 4. La Cruz
+    [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 1, 1, 0, 0, 0, 1],
+        [1, 0, 0, 0, 1, 1, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 0, 1, 1, 0, 1, 1, 1],
+        [1, 1, 1, 0, 1, 1, 0, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 1, 1, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    ],
+    // 5. Los Pequeños Cuartos
+    [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+        [1, 1, 0, 1, 1, 1, 0, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 0, 1, 1, 1, 0, 1, 1, 1],
+        [1, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    ],
+    // 6. El Peine
+    [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 0, 1, 0, 1, 0, 1, 1],
+        [1, 0, 1, 0, 1, 0, 1, 0, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+        [1, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    ],
+    // 7. El Diamante
+    [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 1, 1, 1, 1, 0, 0, 1],
+        [1, 0, 1, 1, 1, 1, 1, 1, 0, 1],
+        [1, 0, 0, 1, 1, 1, 1, 0, 0, 1],
+        [1, 0, 0, 0, 1, 1, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    ],
+    // 8. Líneas Discontinuas
+    [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 1, 1, 0, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 0, 1, 1, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 1, 1, 0, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    ],
+    // 9. El Vacío Central
+    [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 1, 1, 1, 1, 1, 0, 1],
+        [1, 0, 1, 0, 0, 0, 0, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 0, 0, 0, 0, 1, 0, 1],
+        [1, 0, 1, 1, 1, 1, 1, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    ],
+    // 10. Laberinto de Pasillos
+    [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+        [1, 1, 1, 1, 0, 1, 0, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 1, 1, 0, 1, 1, 0, 1],
+        [1, 0, 0, 0, 1, 0, 1, 0, 0, 1],
+        [1, 1, 1, 0, 1, 0, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    ]
+];
+
+// 11. Mapa especial "Campo Abierto" (Cada 5 niveles)
+const openMaze = [
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+];
+
+let lastMazeIndex = -1;
+
+let allLevels = [
+    { word: "SAID", hint: "REGLA: +1", shift: 1, learning: { text: "¡Bienvenido! Criptografía básica.", question: "Si A es B, ¿qué es B?", options: ["C", "A", "D"], correct: 0 } },
+    { word: "HOLA", hint: "REGLA: +1", shift: 1, learning: { text: "Buen trabajo.", question: "Si H es I, ¿qué es O?", options: ["P", "N", "M"], correct: 0 } },
+    { word: "AMIGO", hint: "REGLA: +2", shift: 2, learning: { text: "Avanzas rápido.", question: "Si A (+2) es C, ¿qué es B?", options: ["D", "C", "E"], correct: 0 } },
+    { word: "CASA", hint: "REGLA: +1", shift: 1, learning: { text: "Protege tu hogar.", question: "Si C es D, ¿qué es Z?", options: ["A", "B", "Y"], correct: 0 } },
+    { word: "PERRO", hint: "REGLA: +3", shift: 3, learning: { text: "Los perros son leales.", question: "Si A (+3) es D, ¿qué es B?", options: ["E", "D", "F"], correct: 0 } }
+];
 
 class SaidVersoScene extends Phaser.Scene {
     constructor() { super('GameScene'); }
@@ -64,7 +191,7 @@ class SaidVersoScene extends Phaser.Scene {
 
         // Teclas
         this.cursors = this.input.keyboard.createCursorKeys();
-        this.wasd    = this.input.keyboard.addKeys({ up: 'W', down: 'S', left: 'A', right: 'D' });
+        this.wasd = this.input.keyboard.addKeys({ up: 'W', down: 'S', left: 'A', right: 'D' });
         this.powerKeys = this.input.keyboard.addKeys({
             star: Phaser.Input.Keyboard.KeyCodes.ONE,
             ghost: Phaser.Input.Keyboard.KeyCodes.TWO,
@@ -105,22 +232,44 @@ class SaidVersoScene extends Phaser.Scene {
         const speed = State.activePower === 'speed' ? 300 : 180;
         const { cursors, wasd } = this;
 
-        if (cursors.left.isDown  || wasd.left.isDown  || dpad.left)  player.setVelocityX(-speed);
+        if (cursors.left.isDown || wasd.left.isDown || dpad.left) player.setVelocityX(-speed);
         else if (cursors.right.isDown || wasd.right.isDown || dpad.right) player.setVelocityX(speed);
 
-        if (cursors.up.isDown    || wasd.up.isDown    || dpad.up)    player.setVelocityY(-speed);
-        else if (cursors.down.isDown  || wasd.down.isDown  || dpad.down)  player.setVelocityY(speed);
+        if (cursors.up.isDown || wasd.up.isDown || dpad.up) player.setVelocityY(-speed);
+        else if (cursors.down.isDown || wasd.down.isDown || dpad.down) player.setVelocityY(speed);
 
         if (enemy.active) {
-            if (State.activePower === 'star') enemy.setVelocity(0);
-            else this.physics.moveToObject(enemy, player, 80);
+            if (State.activePower === 'star') {
+                enemy.setVelocity(0);
+            } else {
+                // En el nivel de campo abierto (cada 5), el centinela es más lento para dar oportunidad de esquive
+                const eSpeed = (currentLevel.maze === openMaze) ? 60 : 90;
+                this.physics.moveToObject(enemy, player, eSpeed);
+            }
         }
     }
 }
 
 // ---- Carga de nivel ----
 function loadLevel(scene) {
-    currentLevel = allLevels[State.currentLevelIndex] || allLevels[0];
+    currentLevel = allLevels[State.currentLevelIndex % allLevels.length] || allLevels[0];
+
+    // Lógica de mapas: Cada 5 niveles sale el mapa de "Campo Abierto" (Tipo Serpiente)
+    // NOTA: Añadimos index 0 temporalmente para que el usuario lo pruebe de inmediato
+    if (State.currentLevelIndex === 0 || (State.currentLevelIndex + 1) % 5 === 0) {
+        currentLevel.maze = openMaze;
+        lastMazeIndex = -1; // Reset para permitir cualquier mapa en el nivel siguiente
+    } else {
+        // Asignar un laberinto aleatorio del pool sin repetir el anterior
+        let mazeIdx;
+        do {
+            mazeIdx = Math.floor(Math.random() * mazesPool.length);
+        } while (mazeIdx === lastMazeIndex && mazesPool.length > 1);
+
+        lastMazeIndex = mazeIdx;
+        currentLevel.maze = mazesPool[mazeIdx];
+    }
+
     collectedWord = "";
     lives = 3;
     window.perfectLevel = true;
@@ -161,12 +310,12 @@ function loadLevel(scene) {
 
     if (freeSpaces.length > 0) {
         window.playerStartPos = { x: freeSpaces[0].x, y: freeSpaces[0].y };
-        window.enemyStartPos  = { x: freeSpaces[freeSpaces.length-1].x, y: freeSpaces[freeSpaces.length-1].y };
+        window.enemyStartPos = { x: freeSpaces[freeSpaces.length - 1].x, y: freeSpaces[freeSpaces.length - 1].y };
     }
 
     const getFarSpace = () => {
         Phaser.Utils.Array.Shuffle(freeSpaces);
-        const pStart = window.playerStartPos || {x:0, y:0};
+        const pStart = window.playerStartPos || { x: 0, y: 0 };
         for (let i = 0; i < freeSpaces.length; i++) {
             if (Phaser.Math.Distance.Between(freeSpaces[i].x, freeSpaces[i].y, pStart.x, pStart.y) > 160) {
                 return freeSpaces.splice(i, 1)[0];
@@ -212,15 +361,15 @@ function loadLevel(scene) {
     // Personajes y Reglas Físicas (Solo se declaran una vez)
     if (!player) {
         player = scene.physics.add.sprite(freeSpaces[0].x, freeSpaces[0].y, 'robot').setDepth(5);
-        enemy  = scene.physics.add.sprite(freeSpaces[freeSpaces.length-1].x, freeSpaces[freeSpaces.length-1].y, 'enemy').setDepth(5);
+        enemy = scene.physics.add.sprite(freeSpaces[freeSpaces.length - 1].x, freeSpaces[freeSpaces.length - 1].y, 'enemy').setDepth(5);
         player.setCollideWorldBounds(true);
         enemy.setCollideWorldBounds(true);
         player.setBodySize(18, 18);
-        
+
         // Colliders
         scene.physics.add.collider(player, mazeWalls, null, () => State.activePower !== 'ghost');
-        scene.physics.add.collider(enemy,  mazeWalls);
-        
+        scene.physics.add.collider(enemy, mazeWalls);
+
         // Overlaps
         scene.physics.add.overlap(player, enemy, handleEnemyCollision, null, scene);
         scene.physics.add.overlap(player, coinsGroup, collectCoin, null, scene);
@@ -229,23 +378,15 @@ function loadLevel(scene) {
         scene.physics.add.overlap(player, letters, collectLetter, null, scene);
     } else {
         player.setPosition(freeSpaces[0].x, freeSpaces[0].y);
-        enemy.setPosition(freeSpaces[freeSpaces.length-1].x, freeSpaces[freeSpaces.length-1].y);
+        enemy.setPosition(freeSpaces[freeSpaces.length - 1].x, freeSpaces[freeSpaces.length - 1].y);
         enemy.setActive(true).setVisible(true);
         player.setAlpha(1); player.clearTint();
         State.activePower = null;
     }
 
-    // HUD en canvas
-    if (!uiTextWord) {
-        uiTextWord = scene.add.text(225, 710, '', { 
-            fontSize: '32px', color: '#00ffff', fontStyle: 'bold', padding: { bottom: 10 } 
-        }).setOrigin(0.5).setDepth(10).setScrollFactor(0);
-        
-        uiTextHint = scene.add.text(225, 760, '', { 
-            fontSize: '16px', color: '#ff00ff', fontStyle: 'bold', backgroundColor: '#00000088', padding: { x: 10, y: 5 } 
-        }).setOrigin(0.5).setDepth(10).setScrollFactor(0);
-        
-        countdownText = scene.add.text(225, 120, '', {
+    // HUD en canvas (Solo contador central, el resto es HTML unificado)
+    if (!countdownText) {
+        countdownText = scene.add.text(225, 140, '', {
             fontSize: '24px', color: '#ffff00', fontStyle: 'bold', backgroundColor: '#000000bb', padding: { x: 15, y: 10 }
         }).setOrigin(0.5).setDepth(500).setScrollFactor(0).setVisible(false);
     }
@@ -256,9 +397,9 @@ function loadLevel(scene) {
 // ---- Poderes ----
 let powerTimerEvent = null;
 
-window.tryActivatePower = function(type) {
+window.tryActivatePower = function (type) {
     if (!player || State.activePower === type) return;
-    
+
     if (State.inventory[type] > 0) {
         State.inventory[type]--;
         State.save();
@@ -283,16 +424,16 @@ window.tryActivatePower = function(type) {
             if (type === 'key') player.setTint(0xff8800);
             if (type === 'invisible') player.setAlpha(0.2);
             AudioFX.powerup();
-            
+
             if (powerTimerEvent) clearInterval(powerTimerEvent);
-            
+
             let pTime = 10;
             if (countdownText) countdownText.setText(`${type.toUpperCase()}: ${pTime}s`).setVisible(true);
-            
+
             powerTimerEvent = setInterval(() => {
                 if (State.isPaused) return;
                 pTime--;
-                
+
                 if (pTime <= 0 || !State.activePower) {
                     clearInterval(powerTimerEvent);
                     State.activePower = null;
@@ -307,14 +448,14 @@ window.tryActivatePower = function(type) {
     } else {
         AudioFX.wrong();
         const el = document.getElementById('shop-coins-display');
-        if (el) { el.innerText = "¡NO TIENES ESE PODER!"; setTimeout(()=> el.innerText = `Tus créditos: 🪙 ${State.coins}`, 2000); }
+        if (el) { el.innerText = "¡NO TIENES ESE PODER!"; setTimeout(() => el.innerText = `Tus créditos: 🪙 ${State.coins}`, 2000); }
     }
 }
 
 // ---- Colisiones ----
 function handleEnemyCollision() {
-    if (State.activePower === 'star') { 
-        AudioFX.win(); 
+    if (State.activePower === 'star') {
+        AudioFX.win();
         enemy.disableBody(true, true); // Deshabilita física e invisibiliza
         setTimeout(() => {
             if (enemy && enemy.scene) {
@@ -323,23 +464,23 @@ function handleEnemyCollision() {
                 enemy.enableBody(true, ex, ey, true, true);
             }
         }, 5000); // El centinela revive en 5 segundos en su base
-        return; 
+        return;
     }
-    
+
     window.perfectLevel = false; // Perdió el bono perfecto
     AudioFX.hit(); lives--; State.streak = 0; State.save();
     updateLivesUI();
     const el = document.getElementById('ui-streak');
     if (el) el.innerText = '🔥 0';
     game.scene.scenes[0].cameras.main.shake(300, 0.02);
-    
+
     // Regresar al inicio del laberinto
     if (window.playerStartPos) {
         player.setPosition(window.playerStartPos.x, window.playerStartPos.y);
     } else {
         player.setPosition(225, 400);
     }
-    
+
     if (lives <= 0) { alert('¡Misión Fallida!'); window.location.reload(); }
 }
 
@@ -361,7 +502,7 @@ function collectAnimal(p, a) {
 function setupLetters(scene, freeSpaces) {
     const { word, shift } = currentLevel;
     word.split('').forEach(char => {
-        const code    = char.charCodeAt(0) - 65;
+        const code = char.charCodeAt(0) - 65;
         const shifted = ((code + shift) % 26) + 65;
         const ciphered = String.fromCharCode(shifted);
         const pos = Phaser.Utils.Array.RemoveRandomElement(freeSpaces) || { x: 225, y: 300 };
@@ -377,7 +518,7 @@ function collectLetter(p, l) {
     const val = l.getData('val');
     let isAllowed = (val === currentLevel.word[collectedWord.length]);
     if (State.activePower === 'key') isAllowed = true;
-    
+
     if (!isAllowed) {
         AudioFX.wrong(); game.scene.scenes[0].cameras.main.shake(80, 0.004); return;
     }
@@ -386,8 +527,8 @@ function collectLetter(p, l) {
     l.destroy(); updateWordDisplay();
     if (collectedWord === currentLevel.word) {
         AudioFX.win();
-        if (window.perfectLevel) { 
-            State.coins += 20; updateCoinsUI(); 
+        if (window.perfectLevel) {
+            State.coins += 20; updateCoinsUI();
             window.startRoulette("¡BONO DE NIVEL PERFECTO!", showLearningPhase);
         } else {
             showLearningPhase();
@@ -401,19 +542,19 @@ function collectChest(p, chest) {
     window.startRoulette("¡COFRE ENCONTRADO!");
 }
 
-window.startRoulette = function(title, callback = null) {
+window.startRoulette = function (title, callback = null) {
     game.scene.scenes[0].physics.pause();
     State.isPaused = true;
     window.rouletteCallback = callback;
     window.lastRolledPower = null;
-    
+
     document.getElementById('roulette-title').innerText = title;
     document.getElementById('roulette-modal').style.display = 'flex';
     document.getElementById('roulette-actions').style.display = 'none';
     const box = document.getElementById('roulette-box');
     const desc = document.getElementById('roulette-desc');
     desc.innerText = "Girando...";
-    
+
     const powers = [
         { id: 'star', icon: '⭐', text: 'ESTRELLA: Neutraliza al centinela.' },
         { id: 'ghost', icon: '👻', text: 'FANTASMA: Atraviesa paredes.' },
@@ -422,10 +563,10 @@ window.startRoulette = function(title, callback = null) {
         { id: 'key', icon: '🔑', text: 'CRIPTO-LLAVE: Toda letra sirve.' },
         { id: 'invisible', icon: '👁️', text: 'INVISIBLE: Sin rastreo.' }
     ];
-    
+
     let spins = 0;
     AudioFX.play(600, 'square', 0.1, 0.5);
-    
+
     const interval = setInterval(() => {
         box.innerText = powers[spins % powers.length].icon;
         AudioFX.play(800 + (spins * 20), 'sine', 0.02, 0.05);
@@ -436,7 +577,7 @@ window.startRoulette = function(title, callback = null) {
             box.innerText = finalPower.icon;
             desc.innerText = `¡Obtuviste ${finalPower.icon}!\n${finalPower.text}`;
             window.lastRolledPower = finalPower.id;
-            
+
             const actionsDiv = document.getElementById('roulette-actions');
             actionsDiv.style.display = 'flex';
             if (callback) {
@@ -449,7 +590,7 @@ window.startRoulette = function(title, callback = null) {
                     <button class="btn-secondary" onclick="closeRoulette(true)" style="width:80%;">USAR AHORA</button>
                 `;
             }
-            
+
             AudioFX.powerup();
             State.inventory[finalPower.id]++;
             State.save();
@@ -460,13 +601,13 @@ window.startRoulette = function(title, callback = null) {
     }, 100);
 }
 
-window.showAnimalFact = function(data) {
+window.showAnimalFact = function (data) {
     game.scene.scenes[0].physics.pause();
     State.isPaused = true;
     document.getElementById('roulette-title').innerText = `¡${data.name.toUpperCase()} RESCATADO!`;
     document.getElementById('roulette-box').innerText = data.emoji;
     document.getElementById('roulette-desc').innerText = `¡Ganaste 50 Créditos!\n\nDato curioso:\n${data.fact}`;
-    
+
     const actionsDiv = document.getElementById('roulette-actions');
     actionsDiv.style.display = 'flex';
     actionsDiv.innerHTML = `<button onclick="closeRoulette(false)" style="width:80%;">¡INCREÍBLE!</button>`;
@@ -478,8 +619,8 @@ function showLearningPhase() {
     game.scene.scenes[0].physics.pause();
     State.streak++; State.save();
 
-    document.getElementById('streak-msg').innerText  = `🔥 ¡RACHA DE ${State.streak}!`;
-    document.getElementById('learn-text').innerText  = currentLevel.learning.text;
+    document.getElementById('streak-msg').innerText = `🔥 ¡RACHA DE ${State.streak}!`;
+    document.getElementById('learn-text').innerText = currentLevel.learning.text;
     document.getElementById('quiz-question').innerText = currentLevel.learning.question;
 
     const opts = document.getElementById('quiz-options');
@@ -499,7 +640,7 @@ function checkQuiz(selected, correct) {
     AudioFX.correct();
     document.getElementById('learning-modal').style.display = 'none';
     State.currentLevelIndex++; State.save();
-    
+
     const username = localStorage.getItem('cq_username');
     if (username) Database.saveProfile(username, State);
 
@@ -544,7 +685,7 @@ function runIntro(scene) {
         } else {
             clearInterval(iv);
             document.getElementById('intro-logo').style.opacity = 1;
-            document.getElementById('intro-sub').style.opacity  = 1;
+            document.getElementById('intro-sub').style.opacity = 1;
             setTimeout(() => {
                 document.getElementById('intro-screen').style.opacity = 0;
                 setTimeout(() => {
@@ -558,58 +699,63 @@ function runIntro(scene) {
 
 // ---- UI Helpers ----
 function updateLivesUI() {
-    const el = document.getElementById('ui-lives');
-    if (el) {
-        if (lives <= 3) el.innerText = '❤️'.repeat(lives);
-        else el.innerText = `❤️ x${lives}`;
-    }
+    updateInventoryUI(); // Sincronizar la barra unificada
 }
-function updateCoinsUI()  { const el = document.getElementById('ui-coins-game'); if (el) el.innerText = `🪙 ${State.coins}`; }
+function updateCoinsUI() { const el = document.getElementById('ui-coins-game'); if (el) el.innerText = `🪙 ${State.coins}`; }
 function updateInventoryUI() {
     const el = document.getElementById('ui-inventory');
     if (el) {
-        const i = State.inventory || { star:0, ghost:0, speed:0, life:0 };
+        const i = State.inventory || { star: 0, ghost: 0, speed: 0, life: 0, key: 0, invisible: 0 };
+        // El corazón ahora muestra las vidas reales del jugador (lives)
+        // El resto muestra el stock de poderes
         el.innerHTML = `
-            <span onclick="window.tryActivatePower('life')" style="cursor:pointer;" title="Usar Vida Extra [4]">❤️${i.life||0}</span> &nbsp;&nbsp;
-            <span onclick="window.tryActivatePower('star')" style="cursor:pointer;" title="Usar Estrella [1]">⭐${i.star||0}</span> &nbsp;&nbsp;
-            <span onclick="window.tryActivatePower('ghost')" style="cursor:pointer;" title="Usar Fantasma [2]">👻${i.ghost||0}</span> &nbsp;&nbsp;
-            <span onclick="window.tryActivatePower('speed')" style="cursor:pointer;" title="Usar Velocidad [3]">⚡${i.speed||0}</span> &nbsp;&nbsp;
-            <span onclick="window.tryActivatePower('key')" style="cursor:pointer;" title="Usar Llave [5]">🔑${i.key||0}</span> &nbsp;&nbsp;
-            <span onclick="window.tryActivatePower('invisible')" style="cursor:pointer;" title="Usar Invisible [6]">👁️${i.invisible||0}</span>
+            <span onclick="window.tryActivatePower('life')" style="cursor:pointer; color:#ff3366;" title="Salud Actual (Clic para usar Extra)">❤️${lives}${i.life > 0 ? ' (+' + i.life + ')' : ''}</span> &nbsp;
+            <span onclick="window.tryActivatePower('star')" style="cursor:pointer;" title="Estrella">⭐${i.star || 0}</span> &nbsp;
+            <span onclick="window.tryActivatePower('ghost')" style="cursor:pointer;" title="Fantasma">👻${i.ghost || 0}</span> &nbsp;
+            <span onclick="window.tryActivatePower('speed')" style="cursor:pointer;" title="Velocidad">⚡${i.speed || 0}</span> &nbsp;
+            <span onclick="window.tryActivatePower('key')" style="cursor:pointer;" title="Llave">🔑${i.key || 0}</span> &nbsp;
+            <span onclick="window.tryActivatePower('invisible')" style="cursor:pointer;" title="Invisible">👁️${i.invisible || 0}</span>
         `;
     }
 }
 function updateWordDisplay() {
     const shown = collectedWord.split('').join(' ');
-    // Se usan espacios adicionales para hacer el guión mucho más ancho y visible
     const blanks = ' _ '.repeat(currentLevel.word.length - collectedWord.length).trim();
-    uiTextWord.setText(`${shown} ${blanks}`.trim());
-    
+
+    // Actualizar HTML
+    const wordEl = document.getElementById('ui-word-html');
+    if (wordEl) wordEl.innerText = `${shown} ${blanks}`.trim();
+
     let helpMsg = currentLevel.hint;
     if (collectedWord.length < currentLevel.word.length) {
         const nextChar = currentLevel.word[collectedWord.length];
         const code = nextChar.charCodeAt(0) - 65;
         const shifted = ((code + currentLevel.shift) % 26) + 65;
         const nextCiphered = String.fromCharCode(shifted);
-        helpMsg += `   👉 Busca la [ ${nextCiphered} ]`;
+        helpMsg += ` | BUSCA: [ ${nextCiphered} ]`;
     }
-    
-    uiTextHint.setText(helpMsg);
+
+    const hintEl = document.getElementById('ui-hint-html');
+    if (hintEl) hintEl.innerText = helpMsg;
+
+    // Sincronizar canvas por si acaso (opcional)
+    if (uiTextWord) uiTextWord.setText(`${shown} ${blanks}`.trim());
+    if (uiTextHint) uiTextHint.setText(helpMsg);
 }
 
 // ---- UI Helpers ----
 function createDPad(scene) {
-    const x = 225, y = 620; // Centered below maze
+    const x = 225, y = 650; // Centered below maze, closer to bottom bar
     const btn = (bx, by, dir, symbol) => {
-        let b = scene.add.circle(bx, by, 35, 0x00ffff, 0.1).setInteractive().setDepth(100);
-        b.setStrokeStyle(2, 0x00ffff);
-        scene.add.text(bx, by, symbol, { fontSize: '24px', color: '#00ffff' }).setOrigin(0.5).setDepth(101);
+        let b = scene.add.circle(bx, by, 32, 0x00ffff, 0.05).setInteractive().setDepth(100);
+        b.setStrokeStyle(1.5, 0x00ffff, 0.2);
+        scene.add.text(bx, by, symbol, { fontSize: '20px', color: '#00ffff' }).setOrigin(0.5).setDepth(101).setAlpha(0.3);
         const reset = () => { dpad[dir] = false; b.setAlpha(1); };
         b.on('pointerdown', () => { dpad[dir] = true; b.setAlpha(0.5); });
         b.on('pointerup', reset); b.on('pointerout', reset); b.on('pointerupoutside', reset);
     };
-    btn(x, y-55, 'up', '▲'); btn(x, y+55, 'down', '▼');
-    btn(x-55, y, 'left', '◀'); btn(x+65, y, 'right', '▶');
+    btn(x, y - 50, 'up', '▲'); btn(x, y + 50, 'down', '▼');
+    btn(x - 50, y, 'left', '◀'); btn(x + 60, y, 'right', '▶');
 }
 
 // ---- Punto de entrada ----
@@ -617,8 +763,8 @@ window.startGame = function () {
     if (!game || !game.scene.scenes[0]) { setTimeout(window.startGame, 100); return; }
     document.getElementById('dashboard-screen').style.display = 'none';
     document.querySelector('.ui-overlay').style.display = 'flex';
-    document.getElementById('pause-btn').style.display  = 'flex';
-    document.getElementById('power-btn').style.display  = 'flex';
+    document.getElementById('pause-btn').style.display = 'flex';
+    document.getElementById('power-btn').style.display = 'flex';
     updateInventoryUI();
     // Recargar nivel con datos frescos de Supabase (ya sincronizados en background)
     loadLevel(game.scene.scenes[0]);
