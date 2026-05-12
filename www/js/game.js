@@ -1,11 +1,9 @@
 let player, enemy, letters, mazeWalls, countdownText, coinsGroup, animalsGroup;
-let allLevels = [{ word: "SAID", hint: "REGLA: +1", shift: 1, maze: [[1,1,1,1,1],[1,0,0,0,1],[1,1,1,1,1]], learning: {text:"¡Bienvenido!", question:"¿Qué es 1+1?", options:["2","3"], correct:0} }];
+let allLevels = [{ word: "HOLA", hint: "REGLA: +1", shift: 1, maze: [[1,1,1,1,1,1,1,1],[1,0,0,0,0,0,0,1],[1,0,1,1,1,1,0,1],[1,0,0,0,0,0,0,1],[1,1,1,1,1,1,1,1]], learning: {text:"¡Bienvenido!", question:"¿Qué es 1+1?", options:["2","3"], correct:0} }];
 let currentLevel = null;
 let collectedWord = "", uiTextWord, uiTextHint, uiTextLevel, lives = 3;
 let dpad = { up: false, down: false, left: false, right: false };
 let isPaused = false, isScanning = true;
-
-// Estados de Poder
 let activePower = null, powerTimer = 0;
 
 const GameScene = {
@@ -20,15 +18,28 @@ const GameScene = {
         graphics.generateTexture('wall', 40, 40);
     },
 
-    async create() {
-        runIntro();
-        try {
-            const data = await Database.fetchLevels();
-            if (data && data.length > 0) allLevels = data;
-        } catch (e) { console.error("Error DB:", e); }
-        
+    create() {
+        // 1. CARGAR NIVEL DE EMERGENCIA INMEDIATAMENTE
         loadLevel(this);
         this.physics.pause();
+        
+        // 2. INICIAR INTRO Y CARGA DE DB EN PARALELO
+        runIntro();
+        this.loadOnlineLevels();
+    },
+
+    async loadOnlineLevels() {
+        try {
+            const data = await Database.fetchLevels();
+            if (data && data.length > 0) {
+                allLevels = data;
+                console.log("Niveles sincronizados:", allLevels.length);
+                // Si el nivel actual cambió, recargar discretamente
+                if (!currentLevel || allLevels[State.currentLevelIndex]) {
+                    loadLevel(game.scene.scenes[0]);
+                }
+            }
+        } catch (e) { console.error("Error DB:", e); }
     },
 
     update() {
@@ -46,16 +57,17 @@ const GameScene = {
 };
 
 function loadLevel(scene) {
+    if (!scene) return;
     if (!allLevels[State.currentLevelIndex]) State.currentLevelIndex = 0;
     currentLevel = allLevels[State.currentLevelIndex];
+    
     collectedWord = ""; lives = 3; updateLivesUI();
-    checkAndActivatePower();
-    document.getElementById('ui-streak').innerText = `🔥 ${State.streak}`;
-    document.getElementById('ui-coins-game').innerText = `🪙 ${State.coins}`;
+    
     if (mazeWalls) mazeWalls.clear(true, true);
     if (letters) letters.clear(true, true);
     if (coinsGroup) coinsGroup.clear(true, true);
     if (animalsGroup) animalsGroup.clear(true, true);
+
     mazeWalls = scene.physics.add.staticGroup();
     let freeSpaces = [];
     currentLevel.maze.forEach((row, rIdx) => {
@@ -64,6 +76,7 @@ function loadLevel(scene) {
             else freeSpaces.push({x: cIdx * 40 + 20, y: rIdx * 40 + 160});
         });
     });
+
     if (!player) {
         player = scene.physics.add.sprite(60, 200, 'robot').setDepth(2);
         enemy = scene.physics.add.sprite(380, 200, 'enemy').setDepth(2);
@@ -74,9 +87,11 @@ function loadLevel(scene) {
         scene.physics.add.overlap(player, enemy, handleEnemyCollision, null, scene);
     } else {
         player.setPosition(60, 200); enemy.setPosition(380, 200); enemy.setActive(true).setVisible(true);
-        if (activePower !== 'ghost') player.setAlpha(1);
-        if (activePower !== 'star' && activePower !== 'speed') player.clearTint();
+        player.setAlpha(1); player.clearTint();
     }
+
+    checkAndActivatePower();
+
     coinsGroup = scene.physics.add.group();
     animalsGroup = scene.physics.add.group();
     for(let i=0; i<5; i++) {
@@ -88,15 +103,16 @@ function loadLevel(scene) {
     }
     let pAnim = Phaser.Utils.Array.RemoveRandomElement(freeSpaces);
     if(pAnim) {
-        const icons = ["🐶","🐱","🐼","🐨","🦊"];
-        let a = scene.add.text(pAnim.x, pAnim.y, icons[Math.floor(Math.random()*icons.length)], { fontSize: '20px' }).setOrigin(0.5);
+        let a = scene.add.text(pAnim.x, pAnim.y, "🐶", { fontSize: '20px' }).setOrigin(0.5);
         scene.physics.add.existing(a); animalsGroup.add(a);
     }
+
     scene.physics.add.overlap(player, coinsGroup, collectCoin, null, scene);
     scene.physics.add.overlap(player, animalsGroup, collectAnimal, null, scene);
     letters = scene.physics.add.group();
     setupLetters(scene, freeSpaces);
     scene.physics.add.overlap(player, letters, collectLetter, null, scene);
+
     if (!uiTextWord) {
         uiTextWord = scene.add.text(225, 45, "", { fontSize: '24px', color: '#ffffff', fontWeight: 'bold' }).setOrigin(0.5).setDepth(10);
         uiTextHint = scene.add.text(225, 80, "", { fontSize: '13px', color: '#ff00ff' }).setOrigin(0.5).setDepth(10);
@@ -118,20 +134,20 @@ function checkAndActivatePower() {
     else if (State.inventory.life > 0) { lives++; State.inventory.life--; updateLivesUI(); }
     else { activePower = null; player.setAlpha(1); player.clearTint(); }
     State.save();
-    if (activePower) { AudioFX.powerup(); }
+    if (activePower) AudioFX.powerup();
 }
 
 function handleEnemyCollision() {
     if (activePower === 'star') { AudioFX.win(); enemy.setActive(false).setVisible(false); return; }
     AudioFX.hit(); lives--; State.streak = 0; State.save();
-    updateLivesUI(); document.getElementById('ui-streak').innerText = `🔥 0`;
+    updateLivesUI(); if(document.getElementById('ui-streak')) document.getElementById('ui-streak').innerText = `🔥 0`;
     game.scene.scenes[0].cameras.main.shake(300, 0.02); player.setPosition(60, 200);
     if (lives <= 0) { alert("¡Misión Fallida!"); window.location.reload(); }
 }
 
-function collectCoin(p, c) { AudioFX.coin(); c.destroy(); State.coins += 10; document.getElementById('ui-coins-game').innerText = `🪙 ${State.coins}`; }
-function collectAnimal(p, a) { AudioFX.win(); a.destroy(); State.coins += 50; document.getElementById('ui-coins-game').innerText = `🪙 ${State.coins}`; alert("¡Animal Rescatado! +50 créditos."); }
-function updateLivesUI() { document.getElementById('ui-lives').innerText = "❤️".repeat(lives); }
+function collectCoin(p, c) { AudioFX.coin(); c.destroy(); State.coins += 10; if(document.getElementById('ui-coins-game')) document.getElementById('ui-coins-game').innerText = `🪙 ${State.coins}`; }
+function collectAnimal(p, a) { AudioFX.win(); a.destroy(); State.coins += 50; if(document.getElementById('ui-coins-game')) document.getElementById('ui-coins-game').innerText = `🪙 ${State.coins}`; alert("¡Animal Rescatado! +50 créditos."); }
+function updateLivesUI() { if(document.getElementById('ui-lives')) document.getElementById('ui-lives').innerText = "❤️".repeat(lives); }
 function updateWordDisplay() {
     let display = collectedWord.split('').join(' ') + " ";
     display += "_ ".repeat(currentLevel.word.length - collectedWord.length);
@@ -162,7 +178,7 @@ function collectLetter(p, l) {
 function showLearningPhase() {
     game.scene.scenes[0].physics.pause(); State.streak++; State.save();
     document.getElementById('learning-modal').style.display = 'flex';
-    document.getElementById('streak-msg').innerText = `¡RACHA DE ${State.streak} NIVELES! 🔥`;
+    if(document.getElementById('streak-msg')) document.getElementById('streak-msg').innerText = `¡RACHA DE ${State.streak} NIVELES! 🔥`;
     const info = currentLevel.learning;
     document.getElementById('learn-text').innerText = info.text;
     document.getElementById('quiz-question').innerText = info.question;
@@ -221,7 +237,7 @@ function runIntro() {
         if(i < lines.length) {
             const div = document.createElement('div');
             div.className = 'boot-line'; div.innerText = lines[i];
-            log.appendChild(div); AudioFX.play(400 + i*100, 'sine', 0.05, 0.02);
+            if(log) log.appendChild(div); AudioFX.play(400 + i*100, 'sine', 0.05, 0.02);
             i++;
         } else {
             clearInterval(interval);
