@@ -10,10 +10,11 @@ const healthTips = [
     "🔔 PAUSA ACTIVA: Levántate y estira tus brazos. ¡Tu cuerpo te lo agradecerá!"
 ];
 
+let isShopInGame = false;
+
 const UI = {
     showDashboard() {
         const name = localStorage.getItem('cq_username') || "EXPLORADOR";
-        
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('dashboard-screen').style.display = 'flex';
         document.getElementById('dash-welcome').innerText = `HOLA, ${name}`;
@@ -21,24 +22,31 @@ const UI = {
         document.getElementById('dash-streak').innerText = `🔥 ${State.streak}`;
         document.getElementById('dash-coins').innerText = `🪙 ${State.coins}`;
         document.getElementById('motivational-phrase').innerText = `"${phrases[Math.floor(Math.random()*phrases.length)]}"`;
-        
-        const badges = document.getElementById('dash-badges');
-        if(badges) {
-            badges.innerHTML = "";
-            if (State.currentLevelIndex >= 0) badges.innerHTML += '<span class="badge">🎖️ NOVATO</span>';
-            if (State.currentLevelIndex >= 10) badges.innerHTML += '<span class="badge">🚀 EXPERTO</span>';
-            if (State.currentLevelIndex >= 50) badges.innerHTML += '<span class="badge">🔮 MAESTRO</span>';
-        }
-
         if (Math.random() > 0.8) this.showHealthTip();
     },
 
-    openShop() {
-        document.getElementById('shop-coins-display').innerText = `Tus créditos: 🪙 ${State.coins}`;
+    openShop(inGame = false) {
+        isShopInGame = inGame;
+        if (inGame) {
+            game.scene.scenes[0].physics.pause();
+            isPaused = true;
+            document.getElementById('shop-title').innerText = "MENÚ TÁCTICO";
+            document.getElementById('shop-close-btn').innerText = "VOLVER AL NIVEL";
+        } else {
+            document.getElementById('shop-title').innerText = "TIENDA DE PODERES";
+            document.getElementById('shop-close-btn').innerText = "VOLVER AL PANEL";
+        }
+        document.getElementById('shop-coins-display').innerText = `Créditos: 🪙 ${State.coins}`;
         document.getElementById('shop-modal').style.display = 'flex';
     },
 
-    closeShop() { document.getElementById('shop-modal').style.display = 'none'; },
+    closeShop() {
+        document.getElementById('shop-modal').style.display = 'none';
+        if (isShopInGame) {
+            isPaused = false;
+            if (!isScanning) game.scene.scenes[0].physics.resume();
+        }
+    },
 
     buyItem(item, price) {
         if (State.coins >= price) {
@@ -46,11 +54,19 @@ const UI = {
             State.inventory[item] = (State.inventory[item] || 0) + 1;
             State.save();
             AudioFX.powerup();
-            this.openShop();
-            alert("¡Poder adquirido! Se activará en tu próxima misión.");
+            
+            // Si es en juego, activar inmediatamente el primer poder comprado
+            if (isShopInGame) {
+                checkAndActivatePower(); // Llamada al motor de juego
+                this.closeShop();
+                alert("¡PODER ACTIVADO!");
+            } else {
+                this.openShop(false);
+                alert("¡Poder adquirido! Úsalo en tu próxima misión.");
+            }
         } else {
             AudioFX.wrong();
-            alert("¡Necesitas más créditos! Explora más niveles.");
+            alert("¡Necesitas más créditos! Recógelos en el laberinto.");
         }
     },
 

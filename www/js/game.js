@@ -1,5 +1,6 @@
 let player, enemy, letters, mazeWalls, countdownText, coinsGroup, animalsGroup;
-let allLevels = [], currentLevel = null;
+let allLevels = [{ word: "SAID", hint: "REGLA: +1", shift: 1, maze: [[1,1,1,1,1],[1,0,0,0,1],[1,1,1,1,1]], learning: {text:"¡Bienvenido!", question:"¿Qué es 1+1?", options:["2","3"], correct:0} }];
+let currentLevel = null;
 let collectedWord = "", uiTextWord, uiTextHint, uiTextLevel, lives = 3;
 let dpad = { up: false, down: false, left: false, right: false };
 let isPaused = false, isScanning = true;
@@ -22,9 +23,9 @@ const GameScene = {
     async create() {
         runIntro();
         try {
-            allLevels = await Database.fetchLevels();
+            const data = await Database.fetchLevels();
+            if (data && data.length > 0) allLevels = data;
         } catch (e) { console.error("Error DB:", e); }
-        if (allLevels.length === 0) allLevels = [{ word: "SAID", hint: "REGLA: +1", shift: 1, maze: [[1,1,1],[1,0,1],[1,1,1]], learning: {text:"", question:"", options:[], correct:0} }];
         
         loadLevel(this);
         this.physics.pause();
@@ -45,6 +46,7 @@ const GameScene = {
 };
 
 function loadLevel(scene) {
+    if (!allLevels[State.currentLevelIndex]) State.currentLevelIndex = 0;
     currentLevel = allLevels[State.currentLevelIndex];
     collectedWord = ""; lives = 3; updateLivesUI();
     checkAndActivatePower();
@@ -72,7 +74,8 @@ function loadLevel(scene) {
         scene.physics.add.overlap(player, enemy, handleEnemyCollision, null, scene);
     } else {
         player.setPosition(60, 200); enemy.setPosition(380, 200); enemy.setActive(true).setVisible(true);
-        player.setAlpha(1); player.clearTint();
+        if (activePower !== 'ghost') player.setAlpha(1);
+        if (activePower !== 'star' && activePower !== 'speed') player.clearTint();
     }
     coinsGroup = scene.physics.add.group();
     animalsGroup = scene.physics.add.group();
@@ -108,13 +111,14 @@ function loadLevel(scene) {
 }
 
 function checkAndActivatePower() {
-    activePower = null;
+    if (!player) return;
     if (State.inventory.star > 0) { activePower = 'star'; State.inventory.star--; player.setTint(0xffff00); }
     else if (State.inventory.ghost > 0) { activePower = 'ghost'; State.inventory.ghost--; player.setAlpha(0.5); }
     else if (State.inventory.speed > 0) { activePower = 'speed'; State.inventory.speed--; player.setTint(0x00ff00); }
     else if (State.inventory.life > 0) { lives++; State.inventory.life--; updateLivesUI(); }
+    else { activePower = null; player.setAlpha(1); player.clearTint(); }
     State.save();
-    if (activePower) { powerTimer = 15; AudioFX.powerup(); }
+    if (activePower) { AudioFX.powerup(); }
 }
 
 function handleEnemyCollision() {
@@ -246,5 +250,7 @@ window.startGame = function() {
     if (overlay) overlay.style.display = 'flex';
     const pauseBtn = document.getElementById('pause-btn');
     if (pauseBtn) pauseBtn.style.display = 'flex';
+    const powerBtn = document.getElementById('power-btn');
+    if (powerBtn) powerBtn.style.display = 'flex';
     startScanMode();
 };
