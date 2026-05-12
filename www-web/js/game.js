@@ -162,6 +162,17 @@ function loadLevel(scene) {
         window.enemyStartPos  = { x: freeSpaces[freeSpaces.length-1].x, y: freeSpaces[freeSpaces.length-1].y };
     }
 
+    const getFarSpace = () => {
+        Phaser.Utils.Array.Shuffle(freeSpaces);
+        const pStart = window.playerStartPos || {x:0, y:0};
+        for (let i = 0; i < freeSpaces.length; i++) {
+            if (Phaser.Math.Distance.Between(freeSpaces[i].x, freeSpaces[i].y, pStart.x, pStart.y) > 160) {
+                return freeSpaces.splice(i, 1)[0];
+            }
+        }
+        return freeSpaces.pop();
+    };
+
     // Monedas y Cofre
     for (let i = 0; i < 5; i++) {
         const p = Phaser.Utils.Array.RemoveRandomElement(freeSpaces);
@@ -171,14 +182,14 @@ function loadLevel(scene) {
         coinsGroup.add(c);
     }
 
-    const cp = Phaser.Utils.Array.RemoveRandomElement(freeSpaces);
+    const cp = getFarSpace();
     if (cp) {
         const chest = scene.physics.add.sprite(cp.x, cp.y, 'chest').setDepth(4);
         chestGroup.add(chest);
     }
 
     // Animales
-    const ap = Phaser.Utils.Array.RemoveRandomElement(freeSpaces);
+    const ap = getFarSpace();
     if (ap) {
         const animalsData = [
             { emoji: '🐕', name: 'Perro Cibernético', fact: 'Los perros tienen un olfato increíble. ¡Como un buen Antivirus detectando malware!' },
