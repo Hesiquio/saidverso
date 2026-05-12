@@ -473,7 +473,7 @@ function updateInventoryUI() {
     const el = document.getElementById('ui-inventory');
     if (el) {
         const i = State.inventory || { star:0, ghost:0, speed:0, life:0 };
-        el.innerText = `⭐${i.star}  👻${i.ghost}  ⚡${i.speed}  ❤️${i.life}`;
+        el.innerText = `❤️${i.life}  ⭐${i.star}  👻${i.ghost}  ⚡${i.speed}`;
     }
 }
 function updateWordDisplay() {
