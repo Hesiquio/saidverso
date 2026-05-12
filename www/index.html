@@ -3,13 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SaidVerso v4.5</title>
+    <title>SaidVerso v5.0</title>
     
-    <!-- LIBRERÍAS EXTERNAS -->
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-    <!-- MÓDULOS DEL JUEGO -->
     <script src="js/audio.js"></script>
     <script src="js/database.js"></script>
     <script src="js/ui.js"></script>
@@ -31,8 +29,12 @@
         .badge { display: inline-block; padding: 5px 10px; background: #ffff00; color: #000; font-size: 10px; border-radius: 3px; margin: 5px; font-weight: bold; }
         #pause-btn { position: absolute; bottom: 20px; left: 20px; width: 50px; height: 50px; background: rgba(0,255,255,0.2); border: 2px solid #00ffff; color: #00ffff; border-radius: 50%; font-size: 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; pointer-events: auto; z-index: 200; }
         .phrase { font-style: italic; font-size: 12px; color: #ff00ff; margin: 15px 0; }
-        #farewell-screen { z-index: 600; background: #000; display: none; }
-        .quiz-option { background: #1a1a2e; border: 1px solid #00ffff; color: #00ffff; padding: 12px; margin: 8px; width: 90%; cursor: pointer; font-family: 'Courier Prime', monospace; }
+        
+        /* Tienda */
+        .shop-item { background: rgba(0,255,255,0.1); border: 1px solid #00ffff; padding: 10px; margin: 5px; width: 90%; display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
+        .coin-icon { color: #ffff00; font-weight: bold; }
+        
+        #health-modal { z-index: 1000; background: #000; }
     </style>
 </head>
 <body>
@@ -45,7 +47,7 @@
     <div id="intro-screen" class="modal">
         <div id="boot-log" style="height: 150px; overflow: hidden; width: 100%; margin-bottom: 30px;"></div>
         <h1 id="intro-logo" style="color:#00ffff; font-size: 40px; opacity: 0; text-shadow: 0 0 20px #00ffff;">SAIDVERSO</h1>
-        <p id="intro-sub" style="color:#ff00ff; opacity: 0;">SISTEMA OPERATIVO v4.5</p>
+        <p id="intro-sub" style="color:#ff00ff; opacity: 0;">SISTEMA OPERATIVO v5.0</p>
     </div>
 
     <!-- LOGIN -->
@@ -61,23 +63,23 @@
         <div class="phrase" id="motivational-phrase"></div>
         
         <div style="display:flex; gap:10px; width:90%; justify-content:center;">
-            <div class="stat-card" style="width:45%; padding: 10px;">
-                <div style="font-size: 10px; color:#ffff00;">MISIÓN</div>
-                <div id="dash-level" style="font-size: 18px; font-weight: bold;">N1</div>
+            <div class="stat-card" style="width:30%; padding: 10px;">
+                <div style="font-size: 8px; color:#ffff00;">NIVEL</div>
+                <div id="dash-level" style="font-size: 16px; font-weight: bold;">N1</div>
             </div>
-            <div class="stat-card" style="width:45%; padding: 10px;">
-                <div style="font-size: 10px; color:#ffff00;">RACHA</div>
-                <div id="dash-streak" style="font-size: 18px; font-weight: bold;">🔥 0</div>
+            <div class="stat-card" style="width:30%; padding: 10px;">
+                <div style="font-size: 8px; color:#ffff00;">RACHA</div>
+                <div id="dash-streak" style="font-size: 16px; font-weight: bold;">🔥 0</div>
             </div>
-        </div>
-
-        <div class="stat-card" style="padding: 10px;">
-            <div style="font-size: 10px; color:#ffff00; margin-bottom: 5px;">LOGROS</div>
-            <div id="dash-badges"></div>
+            <div class="stat-card" style="width:30%; padding: 10px;">
+                <div style="font-size: 8px; color:#ffff00;">CRÉDITOS</div>
+                <div id="dash-coins" style="font-size: 16px; font-weight: bold;">🪙 0</div>
+            </div>
         </div>
 
         <button style="font-size: 18px; padding: 15px 35px; width:85%;" onclick="startGame()">¡INICIAR EXPLORACIÓN!</button>
-        <button style="background:#ffff00; color:#000; width:85%;" onclick="UI.openRanking()">🏆 RANKING MUNDIAL</button>
+        <button style="background:#ffff00; color:#000; width:85%;" onclick="UI.openShop()">🛒 TIENDA DE PODERES</button>
+        <button style="background:none; border:1px solid #ffff00; color:#ffff00; width:85%; font-size:10px;" onclick="UI.openRanking()">🏆 RANKING MUNDIAL</button>
         
         <div style="display:flex; gap:10px; margin-top:15px;">
             <button style="background: none; border: 1px solid #ff00ff; color:#ff00ff; font-size: 10px;" onclick="document.getElementById('dashboard-screen').style.display='none'; document.getElementById('login-screen').style.display='flex';">USUARIO</button>
@@ -85,25 +87,43 @@
         </div>
     </div>
 
-    <!-- MODAL RANKING -->
+    <!-- TIENDA -->
+    <div id="shop-modal" class="modal" style="display:none; z-index: 400;">
+        <h2 style="color:#ffff00;">TIENDA DE CRIPTO-PODERES</h2>
+        <div id="shop-coins-display" style="color:#00ffff; margin-bottom:10px;">Tus créditos: 🪙 0</div>
+        <div style="width:100%; display:flex; flex-direction:column; align-items:center;">
+            <div class="shop-item">
+                <span>⭐ ESTRELLA (Invencible)</span>
+                <button onclick="UI.buyItem('star', 50)">🪙 50</button>
+            </div>
+            <div class="shop-item">
+                <span>👻 FANTASMA (Muros)</span>
+                <button onclick="UI.buyItem('ghost', 40)">🪙 40</button>
+            </div>
+            <div class="shop-item">
+                <span>⚡ VELOCIDAD x2</span>
+                <button onclick="UI.buyItem('speed', 30)">🪙 30</button>
+            </div>
+            <div class="shop-item">
+                <span>❤️ VIDA EXTRA</span>
+                <button onclick="UI.buyItem('life', 25)">🪙 25</button>
+            </div>
+        </div>
+        <button onclick="UI.closeShop()" style="margin-top:20px; background:#ff00ff; color:white;">VOLVER</button>
+    </div>
+
+    <!-- SALUD DIGITAL -->
+    <div id="health-modal" class="modal" style="display:none; z-index: 2000;">
+        <h2 style="color:#00ff00;">🔔 PAUSA SALUDABLE</h2>
+        <p id="health-tip" style="font-size: 16px; line-height: 1.5;"></p>
+        <button onclick="UI.closeHealthTip()">CONTINUAR</button>
+    </div>
+
+    <!-- RANKING -->
     <div id="ranking-modal" class="modal" style="display:none; z-index: 400; background: rgba(5, 5, 25, 0.98);">
-        <h2 style="color:#ffff00; text-shadow: 0 0 10px #ffff00;">HALL OF FAME</h2>
-        <div id="global-rank-list" style="width:100%; max-height: 50vh; overflow-y: auto; margin: 15px 0; background: rgba(0,0,0,0.3); border-radius: 10px;"></div>
+        <h2 style="color:#ffff00;">HALL OF FAME</h2>
+        <div id="global-rank-list" style="width:100%; max-height: 50vh; overflow-y: auto; margin: 15px 0;"></div>
         <button onclick="document.getElementById('ranking-modal').style.display='none'">VOLVER</button>
-    </div>
-
-    <!-- FAREWELL -->
-    <div id="farewell-screen" class="modal">
-        <h2 style="color:#ff0000; text-shadow: 0 0 15px #ff0000;">DESCONECTANDO...</h2>
-        <p id="farewell-text" style="font-size: 16px; margin: 20px 0;"></p>
-        <div class="boot-line" id="shutdown-log" style="text-align:center;">> Guardando progreso...</div>
-    </div>
-
-    <!-- PAUSA -->
-    <div id="pause-modal" class="modal" style="display:none; z-index: 300;">
-        <h2 style="color:#00ffff;">PAUSA TÁCTICA</h2>
-        <button onclick="togglePause()">REANUDAR</button>
-        <button style="background:#ff00ff; color:#fff;" onclick="goToMainMenu()">MENÚ PRINCIPAL</button>
     </div>
 
     <!-- LEARNING -->
@@ -118,12 +138,11 @@
 
     <div class="ui-overlay" style="display:none;">
         <div id="ui-lives" style="color:#ff00ff; font-weight:bold;">❤️❤️❤️</div>
-        <div id="ui-streak" style="color:#ffff00; font-weight:bold;">🔥 0</div>
+        <div id="ui-coins-game" style="color:#ffff00; font-weight:bold;">🪙 0</div>
     </div>
 </div>
 
 <script>
-    // Inicializar el juego con los módulos cargados
     const config = {
         type: Phaser.AUTO, width: 450, height: 800, parent: 'game-container', backgroundColor: '#050510', pixelArt: true,
         scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },

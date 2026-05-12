@@ -12,6 +12,8 @@ const AudioFX = {
         osc.start(); osc.stop(this.ctx.currentTime + duration);
     },
     collect() { this.play(880, 'sine', 0.1); },
+    coin() { this.play(1320, 'sine', 0.1, 0.02); },
+    powerup() { this.play(440, 'sawtooth', 0.2, 0.02); setTimeout(()=>this.play(880,'sawtooth',0.4,0.02),100); },
     hit() { this.play(100, 'sine', 0.3, 0.08); },
     win() { this.play(523, 'sine', 0.1); setTimeout(()=>this.play(659,'sine',0.1),100); setTimeout(()=>this.play(783,'sine',0.3),200); },
     correct() { this.play(1000, 'sine', 0.2); },

@@ -8,10 +8,16 @@ const Database = {
         if (error) throw error;
         return data.map(d => d.config);
     },
-    async saveScore(username, levelIndex, streak) {
-        // FÓRMULA: Nivel * 1000 + Racha (Para orden superior)
+    async saveScore(username, levelIndex, streak, coins) {
+        // Puntuación combinada + Monedas en metadatos si fuera necesario
         const combinedScore = (levelIndex * 1000) + streak;
-        await supabaseClient.from('rankings').upsert([{ username: username, score: combinedScore }], { onConflict: 'username' });
+        await supabaseClient.from('rankings').upsert([{ 
+            username: username, 
+            score: combinedScore 
+        }], { onConflict: 'username' });
+        
+        // Guardar localmente datos extendidos
+        localStorage.setItem('cq_coins', coins);
     },
     async getRanking() {
         const { data } = await supabaseClient.from('rankings').select('username, score').order('score', { ascending: false }).limit(10);

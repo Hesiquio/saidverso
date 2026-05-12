@@ -1,8 +1,11 @@
-let player, enemy, letters, mazeWalls, countdownText;
+let player, enemy, letters, mazeWalls, countdownText, coinsGroup, animalsGroup;
 let allLevels = [], currentLevelIndex = 0, currentLevel = null;
-let collectedWord = "", uiTextWord, uiTextHint, uiTextLevel, lives = 3, streak = 0;
+let collectedWord = "", uiTextWord, uiTextHint, uiTextLevel, lives = 3, streak = 0, coins = 0;
 let dpad = { up: false, down: false, left: false, right: false };
 let isPaused = false, isScanning = true;
+
+// Estados de Poder
+let activePower = null, powerTimer = 0;
 
 const GameScene = {
     preload() {
@@ -25,6 +28,7 @@ const GameScene = {
         
         currentLevelIndex = parseInt(localStorage.getItem('cq_current_level') || 0);
         streak = parseInt(localStorage.getItem('cq_streak') || 0);
+        coins = parseInt(localStorage.getItem('cq_coins') || 0);
         
         loadLevel(this);
         this.physics.pause();
@@ -32,74 +36,136 @@ const GameScene = {
 
     update() {
         if (!player || !player.active || isPaused || isScanning) return;
-        player.setVelocity(0); const speed = 180;
+        
+        player.setVelocity(0); 
+        let speed = (activePower === 'speed') ? 300 : 180;
+        
         if (this.cursors.left.isDown || dpad.left) player.setVelocityX(-speed);
         else if (this.cursors.right.isDown || dpad.right) player.setVelocityX(speed);
         if (this.cursors.up.isDown || dpad.up) player.setVelocityY(-speed);
         else if (this.cursors.down.isDown || dpad.down) player.setVelocityY(speed);
-        if (enemy.active) this.physics.moveToObject(enemy, player, 80);
+        
+        // El enemigo solo persigue si no somos invisibles o tenemos la estrella
+        if (enemy.active && activePower !== 'star') {
+            this.physics.moveToObject(enemy, player, 80);
+        } else if (activePower === 'star') {
+            enemy.setVelocity(0); // El enemigo se asusta
+        }
     }
 };
 
 function loadLevel(scene) {
     currentLevel = allLevels[currentLevelIndex];
     collectedWord = ""; lives = 3; updateLivesUI();
+    
+    // Revisar Inventario y Activar un poder si existe
+    checkAndActivatePower();
+
     document.getElementById('ui-streak').innerText = `🔥 ${streak}`;
+    document.getElementById('ui-coins-game').innerText = `🪙 ${coins}`;
+
     if (mazeWalls) mazeWalls.clear(true, true);
     if (letters) letters.clear(true, true);
+    if (coinsGroup) coinsGroup.clear(true, true);
+    if (animalsGroup) animalsGroup.clear(true, true);
+
     mazeWalls = scene.physics.add.staticGroup();
+    let freeSpaces = [];
     currentLevel.maze.forEach((row, rIdx) => {
         row.forEach((cell, cIdx) => {
             if (cell === 1) mazeWalls.create(cIdx * 40 + 20, rIdx * 40 + 160, 'wall').setDepth(1);
+            else freeSpaces.push({x: cIdx * 40 + 20, y: rIdx * 40 + 160});
         });
     });
+
     if (!player) {
         player = scene.physics.add.sprite(60, 200, 'robot').setDepth(2);
         enemy = scene.physics.add.sprite(380, 200, 'enemy').setDepth(2);
         player.setCollideWorldBounds(true); enemy.setCollideWorldBounds(true);
         player.setBodySize(18, 18);
-        scene.physics.add.collider(player, mazeWalls); scene.physics.add.collider(enemy, mazeWalls);
-        scene.physics.add.overlap(player, enemy, handleEnemyHit, null, scene);
+        scene.physics.add.collider(player, mazeWalls, null, () => activePower !== 'ghost');
+        scene.physics.add.collider(enemy, mazeWalls);
+        scene.physics.add.overlap(player, enemy, handleEnemyCollision, null, scene);
     } else {
-        player.setPosition(60, 200); enemy.setPosition(380, 200);
-        scene.physics.add.collider(player, mazeWalls); scene.physics.add.collider(enemy, mazeWalls);
+        player.setPosition(60, 200); enemy.setPosition(380, 200); enemy.setActive(true).setVisible(true);
+        player.setAlpha(1); player.clearTint();
     }
+
+    // Monedas y Animales
+    coinsGroup = scene.physics.add.group();
+    animalsGroup = scene.physics.add.group();
+    
+    // Esparcir 5 monedas y 1 animal por nivel
+    for(let i=0; i<5; i++) {
+        let p = Phaser.Utils.Array.RemoveRandomElement(freeSpaces);
+        if(p) {
+            let c = scene.add.text(p.x, p.y, "🪙", { fontSize: '16px' }).setOrigin(0.5);
+            scene.physics.add.existing(c); coinsGroup.add(c);
+        }
+    }
+    let pAnim = Phaser.Utils.Array.RemoveRandomElement(freeSpaces);
+    if(pAnim) {
+        const icons = ["🐶","🐱","🐼","🐨","🦊"];
+        let a = scene.add.text(pAnim.x, pAnim.y, icons[Math.floor(Math.random()*icons.length)], { fontSize: '20px' }).setOrigin(0.5);
+        scene.physics.add.existing(a); animalsGroup.add(a);
+    }
+
+    scene.physics.add.overlap(player, coinsGroup, collectCoin, null, scene);
+    scene.physics.add.overlap(player, animalsGroup, collectAnimal, null, scene);
+
     letters = scene.physics.add.group();
-    setupLetters(scene);
+    setupLetters(scene, freeSpaces);
     scene.physics.add.overlap(player, letters, collectLetter, null, scene);
+    
     if (!uiTextWord) {
         uiTextWord = scene.add.text(225, 45, "", { fontSize: '24px', color: '#ffffff', fontWeight: 'bold' }).setOrigin(0.5).setDepth(10);
         uiTextHint = scene.add.text(225, 80, "", { fontSize: '13px', color: '#ff00ff' }).setOrigin(0.5).setDepth(10);
-        uiTextLevel = scene.add.text(20, 110, "", { fontSize: '12px', color: '#00ffff' }).setDepth(10);
         countdownText = scene.add.text(225, 400, "", { fontSize: '32px', color: '#ffff00', fontWeight: 'bold', backgroundColor: '#000000aa' }).setOrigin(0.5).setDepth(500);
     }
-    updateWordDisplay(); updateTask();
+    updateWordDisplay();
     if (!scene.cursors) { createDPad(scene); scene.cursors = scene.input.keyboard.createCursorKeys(); }
 }
 
-function handleEnemyHit() {
+function checkAndActivatePower() {
+    let inventory = JSON.parse(localStorage.getItem('cq_inventory') || "{}");
+    activePower = null;
+    
+    if (inventory.star > 0) { activePower = 'star'; inventory.star--; player.setTint(0xffff00); }
+    else if (inventory.ghost > 0) { activePower = 'ghost'; inventory.ghost--; player.setAlpha(0.5); }
+    else if (inventory.speed > 0) { activePower = 'speed'; inventory.speed--; player.setTint(0x00ff00); }
+    else if (inventory.life > 0) { lives++; inventory.life--; updateLivesUI(); }
+    
+    localStorage.setItem('cq_inventory', JSON.stringify(inventory));
+    
+    if (activePower) {
+        powerTimer = 15; // 15 segundos de poder
+        AudioFX.powerup();
+    }
+}
+
+function handleEnemyCollision() {
+    if (activePower === 'star') {
+        AudioFX.win(); enemy.setActive(false).setVisible(false);
+        return;
+    }
     AudioFX.hit(); lives--; streak = 0; localStorage.setItem('cq_streak', 0);
     updateLivesUI(); document.getElementById('ui-streak').innerText = `🔥 0`;
-    game.scene.scenes[0].cameras.main.shake(300, 0.02); player.setPosition(60, 200); enemy.setPosition(380, 200);
+    game.scene.scenes[0].cameras.main.shake(300, 0.02); player.setPosition(60, 200);
     if (lives <= 0) { alert("¡Misión Fallida!"); window.location.reload(); }
 }
 
-function updateLivesUI() { document.getElementById('ui-lives').innerText = "❤️".repeat(lives); }
+function collectCoin(p, c) { AudioFX.coin(); c.destroy(); coins += 10; document.getElementById('ui-coins-game').innerText = `🪙 ${coins}`; }
+function collectAnimal(p, a) { AudioFX.win(); a.destroy(); coins += 50; document.getElementById('ui-coins-game').innerText = `🪙 ${coins}`; alert("¡Animal Rescatado! +50 créditos."); }
 
+function updateLivesUI() { document.getElementById('ui-lives').innerText = "❤️".repeat(lives); }
 function updateWordDisplay() {
     let display = collectedWord.split('').join(' ') + " ";
     display += "_ ".repeat(currentLevel.word.length - collectedWord.length);
     uiTextWord.setText(display.trim());
 }
 
-function setupLetters(scene) {
+function setupLetters(scene, freeSpaces) {
     const word = currentLevel.word; const shift = currentLevel.shift;
-    let freeSpaces = [];
-    currentLevel.maze.forEach((row, rIdx) => {
-        row.forEach((cell, cIdx) => {
-            if (cell === 0) freeSpaces.push({x: cIdx * 40 + 20, y: rIdx * 40 + 160});
-        });
-    });
     word.split('').forEach((char) => {
         const ciphered = String.fromCharCode(((char.charCodeAt(0) - 65 + shift) % 26) + 65);
         let pos = Phaser.Utils.Array.RemoveRandomElement(freeSpaces) || {x:225, y:400};
@@ -112,13 +178,17 @@ function collectLetter(p, l) {
     const val = l.getData('val');
     if (val === currentLevel.word[collectedWord.length]) {
         AudioFX.collect(); collectedWord += val; l.destroy(); updateWordDisplay();
-        if (collectedWord === currentLevel.word) { AudioFX.win(); showLearningPhase(); }
+        if (collectedWord === currentLevel.word) { 
+            if(lives === 3) { coins += 20; alert("¡NIVEL PERFECTO! +20 créditos."); }
+            AudioFX.win(); showLearningPhase(); 
+        }
     } else { AudioFX.wrong(); game.scene.scenes[0].cameras.main.shake(100, 0.005); }
 }
 
 function showLearningPhase() {
     game.scene.scenes[0].physics.pause(); streak++;
     localStorage.setItem('cq_streak', streak);
+    localStorage.setItem('cq_coins', coins);
     document.getElementById('learning-modal').style.display = 'flex';
     document.getElementById('streak-msg').innerText = `¡RACHA DE ${streak} NIVELES! 🔥`;
     const info = currentLevel.learning;
@@ -137,16 +207,10 @@ function checkQuiz(selected, correct) {
     if (selected === correct) {
         AudioFX.correct(); document.getElementById('learning-modal').style.display = 'none';
         currentLevelIndex++; localStorage.setItem('cq_current_level', currentLevelIndex);
-        Database.saveScore(localStorage.getItem('cq_username'), currentLevelIndex, streak);
+        Database.saveScore(localStorage.getItem('cq_username'), currentLevelIndex, streak, coins);
         if (currentLevelIndex < allLevels.length) UI.showDashboard(currentLevelIndex, streak);
         else { alert("¡Felicidades!"); window.location.reload(); }
     } else { AudioFX.wrong(); alert("¡Analiza de nuevo!"); }
-}
-
-function updateTask() {
-    const nextChar = currentLevel.word[collectedWord.length]; const shift = currentLevel.shift;
-    const cipheredNext = String.fromCharCode(((nextChar.charCodeAt(0) - 65 + shift) % 26) + 65);
-    // Nota: El elemento UI se actualiza si existe
 }
 
 function createDPad(scene) {
