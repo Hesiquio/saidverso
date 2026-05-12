@@ -1,6 +1,6 @@
 let player, enemy, letters, mazeWalls, countdownText, coinsGroup, animalsGroup;
-let allLevels = [], currentLevelIndex = 0, currentLevel = null;
-let collectedWord = "", uiTextWord, uiTextHint, uiTextLevel, lives = 3, streak = 0, coins = 0;
+let allLevels = [], currentLevel = null;
+let collectedWord = "", uiTextWord, uiTextHint, uiTextLevel, lives = 3;
 let dpad = { up: false, down: false, left: false, right: false };
 let isPaused = false, isScanning = true;
 
@@ -26,39 +26,30 @@ const GameScene = {
         } catch (e) { console.error("Error DB:", e); }
         if (allLevels.length === 0) allLevels = [{ word: "SAID", hint: "REGLA: +1", shift: 1, maze: [[1,1,1],[1,0,1],[1,1,1]], learning: {text:"", question:"", options:[], correct:0} }];
         
-        currentLevelIndex = parseInt(localStorage.getItem('cq_current_level') || 0);
-        streak = parseInt(localStorage.getItem('cq_streak') || 0);
-        coins = parseInt(localStorage.getItem('cq_coins') || 0);
-        
         loadLevel(this);
         this.physics.pause();
     },
 
     update() {
         if (!player || !player.active || isPaused || isScanning) return;
-        
         player.setVelocity(0); 
         let speed = (activePower === 'speed') ? 300 : 180;
-        
-        const cursors = this.cursors;
-        const wasd = this.wasd;
-
-        // Soporte para Flechas y WASD
+        const cursors = this.cursors; const wasd = this.wasd;
         if (cursors.left.isDown || wasd.A.isDown || dpad.left) player.setVelocityX(-speed);
         else if (cursors.right.isDown || wasd.D.isDown || dpad.right) player.setVelocityX(speed);
-        
         if (cursors.up.isDown || wasd.W.isDown || dpad.up) player.setVelocityY(-speed);
         else if (cursors.down.isDown || wasd.S.isDown || dpad.down) player.setVelocityY(speed);
-        
-        // El enemigo solo persigue si no somos invisibles o tenemos la estrella
+        if (enemy.active && activePower !== 'star') this.physics.moveToObject(enemy, player, 80);
+        else if (activePower === 'star') enemy.setVelocity(0);
+    }
 };
 
 function loadLevel(scene) {
-    currentLevel = allLevels[currentLevelIndex];
+    currentLevel = allLevels[State.currentLevelIndex];
     collectedWord = ""; lives = 3; updateLivesUI();
     checkAndActivatePower();
-    document.getElementById('ui-streak').innerText = `🔥 ${streak}`;
-    document.getElementById('ui-coins-game').innerText = `🪙 ${coins}`;
+    document.getElementById('ui-streak').innerText = `🔥 ${State.streak}`;
+    document.getElementById('ui-coins-game').innerText = `🪙 ${State.coins}`;
     if (mazeWalls) mazeWalls.clear(true, true);
     if (letters) letters.clear(true, true);
     if (coinsGroup) coinsGroup.clear(true, true);
@@ -117,26 +108,25 @@ function loadLevel(scene) {
 }
 
 function checkAndActivatePower() {
-    let inventory = JSON.parse(localStorage.getItem('cq_inventory') || "{}");
     activePower = null;
-    if (inventory.star > 0) { activePower = 'star'; inventory.star--; player.setTint(0xffff00); }
-    else if (inventory.ghost > 0) { activePower = 'ghost'; inventory.ghost--; player.setAlpha(0.5); }
-    else if (inventory.speed > 0) { activePower = 'speed'; inventory.speed--; player.setTint(0x00ff00); }
-    else if (inventory.life > 0) { lives++; inventory.life--; updateLivesUI(); }
-    localStorage.setItem('cq_inventory', JSON.stringify(inventory));
+    if (State.inventory.star > 0) { activePower = 'star'; State.inventory.star--; player.setTint(0xffff00); }
+    else if (State.inventory.ghost > 0) { activePower = 'ghost'; State.inventory.ghost--; player.setAlpha(0.5); }
+    else if (State.inventory.speed > 0) { activePower = 'speed'; State.inventory.speed--; player.setTint(0x00ff00); }
+    else if (State.inventory.life > 0) { lives++; State.inventory.life--; updateLivesUI(); }
+    State.save();
     if (activePower) { powerTimer = 15; AudioFX.powerup(); }
 }
 
 function handleEnemyCollision() {
     if (activePower === 'star') { AudioFX.win(); enemy.setActive(false).setVisible(false); return; }
-    AudioFX.hit(); lives--; streak = 0; localStorage.setItem('cq_streak', 0);
+    AudioFX.hit(); lives--; State.streak = 0; State.save();
     updateLivesUI(); document.getElementById('ui-streak').innerText = `🔥 0`;
     game.scene.scenes[0].cameras.main.shake(300, 0.02); player.setPosition(60, 200);
     if (lives <= 0) { alert("¡Misión Fallida!"); window.location.reload(); }
 }
 
-function collectCoin(p, c) { AudioFX.coin(); c.destroy(); coins += 10; document.getElementById('ui-coins-game').innerText = `🪙 ${coins}`; }
-function collectAnimal(p, a) { AudioFX.win(); a.destroy(); coins += 50; document.getElementById('ui-coins-game').innerText = `🪙 ${coins}`; alert("¡Animal Rescatado! +50 créditos."); }
+function collectCoin(p, c) { AudioFX.coin(); c.destroy(); State.coins += 10; document.getElementById('ui-coins-game').innerText = `🪙 ${State.coins}`; }
+function collectAnimal(p, a) { AudioFX.win(); a.destroy(); State.coins += 50; document.getElementById('ui-coins-game').innerText = `🪙 ${State.coins}`; alert("¡Animal Rescatado! +50 créditos."); }
 function updateLivesUI() { document.getElementById('ui-lives').innerText = "❤️".repeat(lives); }
 function updateWordDisplay() {
     let display = collectedWord.split('').join(' ') + " ";
@@ -159,18 +149,16 @@ function collectLetter(p, l) {
     if (val === currentLevel.word[collectedWord.length]) {
         AudioFX.collect(); collectedWord += val; l.destroy(); updateWordDisplay();
         if (collectedWord === currentLevel.word) { 
-            if(lives === 3) { coins += 20; alert("¡NIVEL PERFECTO! +20 créditos."); }
+            if(lives === 3) { State.coins += 20; alert("¡NIVEL PERFECTO! +20 créditos."); }
             AudioFX.win(); showLearningPhase(); 
         }
     } else { AudioFX.wrong(); game.scene.scenes[0].cameras.main.shake(100, 0.005); }
 }
 
 function showLearningPhase() {
-    game.scene.scenes[0].physics.pause(); streak++;
-    localStorage.setItem('cq_streak', streak);
-    localStorage.setItem('cq_coins', coins);
+    game.scene.scenes[0].physics.pause(); State.streak++; State.save();
     document.getElementById('learning-modal').style.display = 'flex';
-    document.getElementById('streak-msg').innerText = `¡RACHA DE ${streak} NIVELES! 🔥`;
+    document.getElementById('streak-msg').innerText = `¡RACHA DE ${State.streak} NIVELES! 🔥`;
     const info = currentLevel.learning;
     document.getElementById('learn-text').innerText = info.text;
     document.getElementById('quiz-question').innerText = info.question;
@@ -186,9 +174,9 @@ function showLearningPhase() {
 function checkQuiz(selected, correct) {
     if (selected === correct) {
         AudioFX.correct(); document.getElementById('learning-modal').style.display = 'none';
-        currentLevelIndex++; localStorage.setItem('cq_current_level', currentLevelIndex);
-        Database.saveScore(localStorage.getItem('cq_username'), currentLevelIndex, streak, coins);
-        if (currentLevelIndex < allLevels.length) UI.showDashboard(currentLevelIndex, streak);
+        State.currentLevelIndex++; State.save();
+        Database.saveScore(localStorage.getItem('cq_username'), State.currentLevelIndex, State.streak, State.coins);
+        if (State.currentLevelIndex < allLevels.length) UI.showDashboard();
         else { alert("¡Felicidades!"); window.location.reload(); }
     } else { AudioFX.wrong(); alert("¡Analiza de nuevo!"); }
 }
@@ -240,7 +228,7 @@ function runIntro() {
                 setTimeout(() => { 
                     document.getElementById('intro-screen').style.display = 'none'; 
                     const name = localStorage.getItem('cq_username');
-                    if (name) UI.showDashboard(currentLevelIndex, streak); 
+                    if (name) UI.showDashboard(); 
                     else document.getElementById('login-screen').style.display = 'flex';
                 }, 1000);
             }, 1500);
@@ -248,7 +236,6 @@ function runIntro() {
     }, 400);
 }
 
-// DEFINICIÓN GLOBAL PARA EL BOTÓN HTML
 window.startGame = function() {
     if (!game || !game.scene.scenes[0]) {
         setTimeout(window.startGame, 100);

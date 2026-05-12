@@ -11,44 +11,40 @@ const healthTips = [
 ];
 
 const UI = {
-    showDashboard(level, streak) {
+    showDashboard() {
         const name = localStorage.getItem('cq_username') || "EXPLORADOR";
-        const coins = parseInt(localStorage.getItem('cq_coins') || 0);
         
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('dashboard-screen').style.display = 'flex';
         document.getElementById('dash-welcome').innerText = `HOLA, ${name}`;
-        document.getElementById('dash-level').innerText = `N${level + 1}`;
-        document.getElementById('dash-streak').innerText = `🔥 ${streak}`;
-        document.getElementById('dash-coins').innerText = `🪙 ${coins}`;
+        document.getElementById('dash-level').innerText = `N${State.currentLevelIndex + 1}`;
+        document.getElementById('dash-streak').innerText = `🔥 ${State.streak}`;
+        document.getElementById('dash-coins').innerText = `🪙 ${State.coins}`;
         document.getElementById('motivational-phrase').innerText = `"${phrases[Math.floor(Math.random()*phrases.length)]}"`;
         
         const badges = document.getElementById('dash-badges');
-        badges.innerHTML = "";
-        if (level >= 0) badges.innerHTML += '<span class="badge">🎖️ NOVATO</span>';
-        if (level >= 10) badges.innerHTML += '<span class="badge">🚀 EXPERTO</span>';
-        if (level >= 50) badges.innerHTML += '<span class="badge">🔮 MAESTRO</span>';
+        if(badges) {
+            badges.innerHTML = "";
+            if (State.currentLevelIndex >= 0) badges.innerHTML += '<span class="badge">🎖️ NOVATO</span>';
+            if (State.currentLevelIndex >= 10) badges.innerHTML += '<span class="badge">🚀 EXPERTO</span>';
+            if (State.currentLevelIndex >= 50) badges.innerHTML += '<span class="badge">🔮 MAESTRO</span>';
+        }
 
-        // Probabilidad de mostrar consejo de salud al entrar
-        if (Math.random() > 0.7) this.showHealthTip();
+        if (Math.random() > 0.8) this.showHealthTip();
     },
 
     openShop() {
-        const coins = localStorage.getItem('cq_coins') || 0;
-        document.getElementById('shop-coins-display').innerText = `Tus créditos: 🪙 ${coins}`;
+        document.getElementById('shop-coins-display').innerText = `Tus créditos: 🪙 ${State.coins}`;
         document.getElementById('shop-modal').style.display = 'flex';
     },
 
     closeShop() { document.getElementById('shop-modal').style.display = 'none'; },
 
     buyItem(item, price) {
-        let coins = parseInt(localStorage.getItem('cq_coins') || 0);
-        if (coins >= price) {
-            coins -= price;
-            localStorage.setItem('cq_coins', coins);
-            let inventory = JSON.parse(localStorage.getItem('cq_inventory') || "{}");
-            inventory[item] = (inventory[item] || 0) + 1;
-            localStorage.setItem('cq_inventory', JSON.stringify(inventory));
+        if (State.coins >= price) {
+            State.coins -= price;
+            State.inventory[item] = (State.inventory[item] || 0) + 1;
+            State.save();
             AudioFX.powerup();
             this.openShop();
             alert("¡Poder adquirido! Se activará en tu próxima misión.");
@@ -82,10 +78,8 @@ const UI = {
     },
 
     showFarewell() {
-        const name = localStorage.getItem('cq_username') || "EXPLORADOR";
         document.getElementById('dashboard-screen').style.display = 'none';
         document.getElementById('farewell-screen').style.display = 'flex';
-        document.getElementById('farewell-text').innerText = "¡Sistemas apagados! Descansa tus ojos, Said.";
         let i = 0;
         const interval = setInterval(() => {
             if(i < 3) {
