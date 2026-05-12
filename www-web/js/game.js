@@ -458,6 +458,8 @@ window.tryActivatePower = function(type) {
 
 // ---- Colisiones ----
 function handleEnemyCollision() {
+    if (lives <= 0) return; // Evitar múltiples muertes por colisión continua
+
     if (State.activePower === 'star') { 
         AudioFX.win(); 
         enemy.disableBody(true, true); // Deshabilita física e invisibiliza
@@ -477,15 +479,22 @@ function handleEnemyCollision() {
     const el = document.getElementById('ui-streak');
     if (el) el.innerText = '🔥 0';
     game.scene.scenes[0].cameras.main.shake(300, 0.02);
+
+    if (lives <= 0) {
+        game.scene.scenes[0].physics.pause();
+        setTimeout(() => {
+            alert('¡Misión Fallida!');
+            window.location.reload();
+        }, 100);
+        return;
+    }
     
-    // Regresar al inicio del laberinto, no a una posición fija
+    // Regresar al inicio del laberinto si aún le quedan vidas
     if (window.playerStartPos) {
         player.setPosition(window.playerStartPos.x, window.playerStartPos.y);
     } else {
         player.setPosition(400, 300);
     }
-    
-    if (lives <= 0) { alert('¡Misión Fallida!'); window.location.reload(); }
 }
 
 function collectCoin(p, c) {
