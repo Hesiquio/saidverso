@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SaidVerso v3.6</title>
+    <title>SaidVerso v3.7</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -16,8 +16,6 @@
         button { background: #00ffff; color: #000; border: none; padding: 12px 25px; font-family: 'Courier Prime', monospace; font-weight: bold; font-size: 14px; cursor: pointer; box-shadow: 0 0 15px #00ffff; margin-top: 10px; }
         .quiz-option { background: #1a1a2e; border: 1px solid #00ffff; color: #00ffff; padding: 12px; margin: 8px; width: 90%; cursor: pointer; font-family: 'Courier Prime', monospace; }
         .quiz-option:hover { background: #00ffff; color: #000; }
-        
-        /* Estilo Salón de la Fama */
         #leaderboard { margin-top: 20px; font-size: 11px; color: #ffff00; width: 80%; background: rgba(0,255,255,0.05); padding: 10px; border-radius: 5px; }
         .rank-item { display: flex; justify-content: space-between; margin: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
     </style>
@@ -26,42 +24,33 @@
 
 <div id="game-wrapper">
     <div id="game-container"></div>
-    
-    <!-- LOGIN + SALÓN DE LA FAMA -->
     <div id="login-screen" class="modal">
         <h1 style="color:#00ffff; text-shadow: 0 0 15px #00ffff; margin-bottom: 5px;">SAIDVERSO</h1>
         <p style="color:#ff00ff; font-size: 10px;">MUNDO DE EXPLORADORES</p>
-        
         <div id="leaderboard">
             <div style="font-weight:bold; margin-bottom:5px; color:#00ffff;">🏆 MEJORES EXPLORADORES</div>
-            <div id="rank-list">Cargando ranking...</div>
+            <div id="rank-list">Cargando...</div>
         </div>
-
         <input type="text" id="username-input" placeholder="TU NOMBRE" maxlength="12">
         <button onclick="showInstructions()">SIGUIENTE</button>
     </div>
-
-    <!-- INSTRUCCIONES -->
     <div id="instruction-screen" class="modal" style="display:none;">
-        <h2 style="color:#ffff00;">¡HOLA EXPLORADOR!</h2>
+        <h2 style="color:#ffff00;">¡HOLA!</h2>
         <p style="font-size: 12px; line-height: 1.4; text-align: left;">
-            🔥 <b>RACHAS:</b> Gana niveles seguidos para ser el #1.<br><br>
+            🔥 <b>RACHAS:</b> Gana niveles seguidos.<br><br>
             🚨 <b>CUIDADO:</b> El centinela rojo quita vidas.<br><br>
-            ⭐ <b>OBJETIVO:</b> Busca las letras en orden (A->B).
+            ⭐ <b>REGLA:</b> A -> B (Salta una letra).
         </p>
         <button onclick="startGame()">¡A JUGAR!</button>
     </div>
-
-    <!-- APRENDIZAJE -->
     <div id="learning-modal" class="modal" style="display:none; z-index: 150;">
-        <h2 id="learn-title" style="color:#ffff00;">¡MISIÓN ÉXITO!</h2>
+        <h2 id="learn-title" style="color:#ffff00;">¡ÉXITO!</h2>
         <div id="streak-msg" style="color:#ff00ff; font-weight:bold; margin-bottom:10px;"></div>
         <p id="learn-text" style="font-size: 14px; margin: 10px 0;"></p>
         <hr style="width:100%; border:0; border-top:1px solid #00ffff; margin:15px 0;">
         <p id="quiz-question" style="font-weight:bold; margin-bottom: 15px; font-size: 14px;"></p>
         <div id="quiz-options" style="width:100%; display:flex; flex-direction:column; align-items:center;"></div>
     </div>
-
     <div class="ui-overlay">
         <div id="ui-lives" style="color:#ff00ff; font-weight:bold;">❤️❤️❤️</div>
         <div id="ui-streak" style="color:#ffff00; font-weight:bold;">🔥 0</div>
@@ -69,10 +58,11 @@
 </div>
 
 <script>
-// --- MOTOR DE SONIDO ---
+// --- MOTOR DE SONIDO (CON COOLDOWN PARA CERO ANSIEDAD) ---
 const AudioFX = {
     ctx: new (window.AudioContext || window.webkitAudioContext)(),
-    play(freq, type, duration, vol = 0.1) {
+    lastErrorTime: 0,
+    play(freq, type, duration, vol = 0.03) {
         if (this.ctx.state === 'suspended') this.ctx.resume();
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
@@ -84,14 +74,21 @@ const AudioFX = {
         osc.start(); osc.stop(this.ctx.currentTime + duration);
     },
     collect() { this.play(880, 'sine', 0.1); },
-    hit() { this.play(100, 'sawtooth', 0.4, 0.2); },
+    hit() { this.play(100, 'sine', 0.3, 0.08); },
     win() { 
         this.play(523, 'sine', 0.1);
         setTimeout(() => this.play(659, 'sine', 0.1), 100);
         setTimeout(() => this.play(783, 'sine', 0.3), 200);
     },
     correct() { this.play(1000, 'sine', 0.2); },
-    wrong() { this.play(200, 'sine', 0.15, 0.1); }
+    wrong() { 
+        // COOLDOWN: Solo suena una vez cada 2 segundos
+        const now = Date.now();
+        if (now - this.lastErrorTime > 2000) {
+            this.play(200, 'sine', 0.1, 0.03); 
+            this.lastErrorTime = now;
+        }
+    }
 };
 
 const SUPABASE_URL = "https://cqsveyvxozegcxbidvqh.supabase.co";
@@ -114,7 +111,6 @@ let dpad = { up: false, down: false, left: false, right: false };
 function preload() {
     const graphics = this.make.graphics();
     graphics.fillStyle(0x00ffff); graphics.fillRect(2, 2, 20, 20);
-    graphics.fillStyle(0xffffff); graphics.fillRect(6, 6, 4, 4); graphics.fillRect(14, 6, 4, 4);
     graphics.generateTexture('robot', 24, 24);
     graphics.clear(); graphics.fillStyle(0xff0000); graphics.fillCircle(12, 12, 10);
     graphics.generateTexture('enemy', 24, 24);
@@ -132,13 +128,10 @@ async function create() {
         allLevels = data.map(d => d.config);
     } catch (e) { console.error("Error DB:", e); }
     if (allLevels.length === 0) allLevels = [{ word: "SAID", hint: "REGLA: +1", shift: 1, maze: [[1,1,1],[1,0,1],[1,1,1]] }];
-    
     const savedLevel = localStorage.getItem('cq_current_level');
     if (savedLevel && savedLevel < allLevels.length) currentLevelIndex = parseInt(savedLevel);
-    
     const savedStreak = localStorage.getItem('cq_streak');
     if (savedStreak) streak = parseInt(savedStreak);
-
     loadLevel(scene);
     scene.physics.pause();
     const savedName = localStorage.getItem('cq_username');
@@ -168,11 +161,8 @@ function startGame() {
 
 function loadLevel(scene) {
     currentLevel = allLevels[currentLevelIndex];
-    collectedWord = "";
-    lives = 3;
-    updateLivesUI();
+    collectedWord = ""; lives = 3; updateLivesUI();
     document.getElementById('ui-streak').innerText = `🔥 ${streak}`;
-    
     if (mazeWalls) mazeWalls.clear(true, true);
     if (letters) letters.clear(true, true);
     mazeWalls = scene.physics.add.staticGroup();
@@ -184,16 +174,13 @@ function loadLevel(scene) {
     if (!player) {
         player = scene.physics.add.sprite(60, 200, 'robot').setDepth(2);
         enemy = scene.physics.add.sprite(380, 200, 'enemy').setDepth(2);
-        player.setCollideWorldBounds(true);
-        enemy.setCollideWorldBounds(true);
+        player.setCollideWorldBounds(true); enemy.setCollideWorldBounds(true);
         player.setBodySize(18, 18);
-        scene.physics.add.collider(player, mazeWalls);
-        scene.physics.add.collider(enemy, mazeWalls);
+        scene.physics.add.collider(player, mazeWalls); scene.physics.add.collider(enemy, mazeWalls);
         scene.physics.add.overlap(player, enemy, handleEnemyHit, null, scene);
     } else {
         player.setPosition(60, 200); enemy.setPosition(380, 200);
-        scene.physics.add.collider(player, mazeWalls);
-        scene.physics.add.collider(enemy, mazeWalls);
+        scene.physics.add.collider(player, mazeWalls); scene.physics.add.collider(enemy, mazeWalls);
     }
     letters = scene.physics.add.group();
     setupLetters(scene);
@@ -206,6 +193,7 @@ function loadLevel(scene) {
     updateWordDisplay();
     uiTextHint.setText("REGLA: SALTA 1 LETRA (A->B)");
     uiTextLevel.setText(`NIVEL: ${currentLevelIndex + 1}`);
+    updateTask();
     if (!scene.cursors) { createDPad(scene); scene.cursors = scene.input.keyboard.createCursorKeys(); }
 }
 
@@ -216,25 +204,17 @@ function updateWordDisplay() {
 }
 
 function handleEnemyHit() {
-    AudioFX.hit();
-    lives--;
-    streak = 0; localStorage.setItem('cq_streak', 0);
-    updateLivesUI();
-    document.getElementById('ui-streak').innerText = `🔥 0`;
-    this.cameras.main.shake(300, 0.02);
-    player.setPosition(60, 200);
-    enemy.setPosition(380, 200);
-    if (lives <= 0) { alert("¡Misión Fallida! Racha perdida."); window.location.reload(); }
+    AudioFX.hit(); lives--; streak = 0; localStorage.setItem('cq_streak', 0);
+    updateLivesUI(); document.getElementById('ui-streak').innerText = `🔥 0`;
+    this.cameras.main.shake(300, 0.02); player.setPosition(60, 200); enemy.setPosition(380, 200);
+    if (lives <= 0) { alert("¡Misión Fallida!"); window.location.reload(); }
 }
 
-function updateLivesUI() {
-    document.getElementById('ui-lives').innerText = "❤️".repeat(lives);
-}
+function updateLivesUI() { document.getElementById('ui-lives').innerText = "❤️".repeat(lives); }
 
 function update() {
     if (!player || !player.active) return;
-    player.setVelocity(0);
-    const speed = 180;
+    player.setVelocity(0); const speed = 180;
     if (this.cursors.left.isDown || dpad.left) player.setVelocityX(-speed);
     else if (this.cursors.right.isDown || dpad.right) player.setVelocityX(speed);
     if (this.cursors.up.isDown || dpad.up) player.setVelocityY(-speed);
@@ -243,8 +223,7 @@ function update() {
 }
 
 function setupLetters(scene) {
-    const word = currentLevel.word;
-    const shift = currentLevel.shift;
+    const word = currentLevel.word; const shift = currentLevel.shift;
     let freeSpaces = [];
     currentLevel.maze.forEach((row, rIdx) => {
         row.forEach((cell, cIdx) => {
@@ -255,26 +234,21 @@ function setupLetters(scene) {
         const ciphered = String.fromCharCode(((char.charCodeAt(0) - 65 + shift) % 26) + 65);
         let pos = Phaser.Utils.Array.RemoveRandomElement(freeSpaces) || {x:225, y:400};
         let l = scene.add.text(pos.x, pos.y, ciphered, { fontSize: '22px', color: '#ffff00', fontWeight: 'bold' }).setOrigin(0.5).setDepth(3);
-        scene.physics.add.existing(l);
-        l.setData('val', char);
-        letters.add(l);
+        scene.physics.add.existing(l); l.setData('val', char); letters.add(l);
     });
 }
 
 function collectLetter(p, l) {
     const val = l.getData('val');
     if (val === currentLevel.word[collectedWord.length]) {
-        AudioFX.collect();
-        collectedWord += val;
-        l.destroy();
-        updateWordDisplay();
+        AudioFX.collect(); collectedWord += val; l.destroy(); updateWordDisplay();
         if (collectedWord === currentLevel.word) { AudioFX.win(); showLearningPhase(); }
+        else updateTask();
     } else { AudioFX.wrong(); this.cameras.main.shake(100, 0.005); }
 }
 
 function showLearningPhase() {
-    game.scene.scenes[0].physics.pause();
-    streak++;
+    game.scene.scenes[0].physics.pause(); streak++;
     localStorage.setItem('cq_streak', streak);
     document.getElementById('learning-modal').style.display = 'flex';
     document.getElementById('streak-msg').innerText = `¡RACHA DE ${streak} NIVELES! 🔥`;
@@ -285,30 +259,31 @@ function showLearningPhase() {
     optionsDiv.innerHTML = "";
     info.options.forEach((opt, idx) => {
         const btn = document.createElement('button');
-        btn.className = 'quiz-option';
-        btn.innerText = opt;
-        btn.onclick = () => checkQuiz(idx, info.correct);
-        optionsDiv.appendChild(btn);
+        btn.className = 'quiz-option'; btn.innerText = opt;
+        btn.onclick = () => checkQuiz(idx, info.correct); optionsDiv.appendChild(btn);
     });
 }
 
 function checkQuiz(selected, correct) {
     if (selected === correct) {
-        AudioFX.correct();
-        document.getElementById('learning-modal').style.display = 'none';
-        currentLevelIndex++;
-        localStorage.setItem('cq_current_level', currentLevelIndex);
-        saveScore(); // GUARDAR PROGRESO REAL EN DB
-        if (currentLevelIndex < allLevels.length) {
-            loadLevel(game.scene.scenes[0]);
-            game.scene.scenes[0].physics.resume();
-        } else { alert("¡Felicidades Explorador Maestro!"); window.location.reload(); }
+        AudioFX.correct(); document.getElementById('learning-modal').style.display = 'none';
+        currentLevelIndex++; localStorage.setItem('cq_current_level', currentLevelIndex);
+        saveScore();
+        if (currentLevelIndex < allLevels.length) { loadLevel(game.scene.scenes[0]); game.scene.scenes[0].physics.resume(); }
+        else { alert("¡Felicidades Explorador Maestro!"); window.location.reload(); }
     } else { AudioFX.wrong(); alert("¡Analiza de nuevo!"); }
 }
 
 async function saveScore() {
     const user = localStorage.getItem('cq_username') || "Explorador";
     await supabaseClient.from('rankings').upsert([{ username: user, score: currentLevelIndex * 100 }], { onConflict: 'username' });
+}
+
+function updateTask() {
+    const nextChar = currentLevel.word[collectedWord.length];
+    const shift = currentLevel.shift;
+    const cipheredNext = String.fromCharCode(((nextChar.charCodeAt(0) - 65 + shift) % 26) + 65);
+    document.getElementById('next-task').innerText = `BUSCA: ${cipheredNext}`;
 }
 
 function createDPad(scene) {
