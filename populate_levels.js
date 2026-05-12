@@ -6,7 +6,6 @@ const SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
 const data = [
-  // MUNDO 1: ESPACIO
   { w: "ROBOT", t: "Los robots son máquinas que pueden realizar tareas automáticamente.", q: "¿Qué hace un robot?", o: ["Come plantas", "Realiza tareas solo", "Habla con animales"], c: 1 },
   { w: "NASA", t: "La NASA explora el espacio exterior buscando nuevos mundos.", q: "¿Qué busca la NASA?", o: ["Peces", "Nuevos mundos", "Tesoros piratas"], c: 1 },
   { w: "MARTE", t: "Marte es el cuarto planeta del sistema solar y es de color rojo.", q: "¿Qué número de planeta es Marte?", o: ["Primero", "Segundo", "Cuarto"], c: 2 },
@@ -27,8 +26,6 @@ const data = [
   { w: "ATMOSFERA", t: "La atmósfera es la capa de aire que protege a la Tierra.", q: "¿Qué es la atmósfera?", o: ["Capa de agua", "Capa de aire", "Capa de fuego"], c: 1 },
   { w: "UNIVERSO", t: "El universo es todo lo que existe: espacio, tiempo y materia.", q: "¿Qué es el universo?", o: ["Solo la Tierra", "Todo lo que existe", "Solo el Sol"], c: 1 },
   { w: "ECLIPSE", t: "Un eclipse ocurre cuando la Luna tapa la luz del Sol.", q: "¿Qué pasa en un eclipse?", o: ["Se apaga el Sol", "La Luna tapa al Sol", "Llueve mucho"], c: 1 },
-
-  // MUNDO 2: HARDWARE
   { w: "CHIP", t: "Un chip es un mini cerebro electrónico que controla aparatos.", q: "¿Qué es un chip?", o: ["Galleta", "Cerebro electrónico", "Batería"], c: 1 },
   { w: "BIT", t: "El bit es la unidad mínima de información: puede ser 0 o 1.", q: "¿Cuál es el valor de un bit?", o: ["1 o 2", "0 o 1", "A o B"], c: 1 },
   { w: "BYTE", t: "Un Byte es un grupo de 8 bits que forman un carácter.", q: "¿Cuántos bits tiene un byte?", o: ["Cuatro", "Ocho", "Diez"], c: 1 },
@@ -49,8 +46,6 @@ const data = [
   { w: "CHASIS", t: "El chasis es la caja que protege todas las piezas internas.", q: "¿Qué es el chasis?", o: ["El motor", "La caja protectora", "Un cable"], c: 1 },
   { w: "SENSOR", t: "Un sensor detecta cambios como el movimiento o la luz.", q: "¿Qué hace un sensor?", o: ["Detecta cambios", "Dibuja", "Canta"], c: 0 },
   { w: "PIXEL", t: "Un píxel es un cuadrito de color. Muchos forman una foto.", q: "¿Qué forma un píxel?", o: ["Un sonido", "Una foto", "Un cable"], c: 1 },
-
-  // MUNDO 3: SOFTWARE E INTERNET
   { w: "WEB", t: "La web es una colección gigante de páginas con información.", q: "¿Qué es la web?", o: ["Un libro", "Páginas de internet", "Un video"], c: 1 },
   { w: "APP", t: "Una App es un programa hecho para hacer algo específico.", q: "¿Qué es una App?", o: ["Un teléfono", "Un programa", "Un juego físico"], c: 1 },
   { w: "LINK", t: "Un link es un puente que te lleva de una página a otra.", q: "¿Qué hace un link?", o: ["Te conecta", "Apaga la PC", "Imprime"], c: 0 },
@@ -71,8 +66,6 @@ const data = [
   { w: "SEND", t: "Enviar (Send) es mandar información a otro lugar.", q: "¿Qué es Send?", o: ["Recibir", "Mandar", "Guardar"], c: 1 },
   { w: "LOAD", t: "Cargar (Load) es traer datos desde el disco a la memoria.", q: "¿Qué es Load?", o: ["Descargar", "Cargar", "Borrar"], c: 1 },
   { w: "SAVE", t: "Guardar (Save) asegura que no pierdas tu progreso.", q: "¿Para qué sirve?", o: ["Para borrar", "Para no perder", "Para iniciar"], c: 1 },
-
-  // MUNDO 4: LÓGICA Y MATES
   { w: "HEX", t: "Hexadecimal es un sistema que usa números y letras (A-F).", q: "¿Qué usa Hex?", o: ["Solo letras", "Números y letras", "Solo ceros"], c: 1 },
   { w: "BIN", t: "Binario es el sistema que usa solo 0 y 1.", q: "¿Qué números usa?", o: ["0 al 9", "0 y 1", "Solo 1"], c: 1 },
   { w: "LOGIC", t: "La lógica nos ayuda a pensar con orden y coherencia.", q: "¿Para qué sirve?", o: ["Pensar con orden", "Para cantar", "Para correr"], c: 0 },
@@ -93,8 +86,6 @@ const data = [
   { w: "LITRO", t: "El litro se usa para medir líquidos como el agua.", q: "¿Qué mide?", o: ["Líquidos", "Sólidos", "Gases"], c: 0 },
   { w: "TIEMPO", t: "El tiempo mide la duración de las cosas (seg, min).", q: "¿Qué mide?", o: ["Distancia", "Duración", "Peso"], c: 1 },
   { w: "LOGO", t: "Un logo es un dibujo que representa a una empresa.", q: "¿Qué es?", o: ["Un juego", "Un dibujo marca", "Un cable"], c: 1 },
-
-  // MUNDO 5: CIENCIA Y NATURALEZA
   { w: "VIDA", t: "La vida es lo que diferencia a animales y plantas de rocas.", q: "¿Quién tiene vida?", o: ["Piedras", "Plantas", "Nubes"], c: 1 },
   { w: "AGUA", t: "El agua es transparente, no tiene color ni olor.", q: "¿Cómo es el agua?", o: ["Roja", "Transparente", "Dulce"], c: 1 },
   { w: "AIRE", t: "El aire es una mezcla de gases que respiramos.", q: "¿Qué respiramos?", o: ["Agua", "Aire", "Tierra"], c: 1 },
@@ -111,46 +102,46 @@ const data = [
   { w: "RIO", t: "Los ríos son corrientes de agua dulce que van al mar.", q: "¿A dónde van?", o: ["Al cielo", "Al mar", "A las casas"], c: 1 },
   { w: "LUZ", t: "La luz viaja más rápido que cualquier otra cosa.", q: "¿Qué tan rápida es?", o: ["Lenta", "Más rápida que todo", "Normal"], c: 1 },
   { w: "SONIDO", t: "El sonido viaja por el aire en forma de vibraciones.", q: "¿Cómo viaja?", o: ["Por cables", "Vibraciones aire", "Por la luz"], c: 1 },
-  { w: "ATOMO", t: "El átomo tiene un núcleo central muy pequeño.", q: "¿Qué tiene?", o: ["Un motor", "Un núcleo", "Un cable"], c: 1 },
   { w: "GAS", t: "El gas es un estado de la materia que no tiene forma.", q: "¿Qué es?", o: ["Sólido", "Un estado materia", "Agua"], c: 1 },
   { w: "LIQUID", t: "Los líquidos fluyen y toman la forma del recipiente.", q: "¿Qué hacen?", o: ["Se rompen", "Toman la forma", "Son duros"], c: 1 },
-  { w: "SOLID", t: "Los sólidos son duros y mantienen su forma.", q: "¿Cómo son?", o: ["Blandos", "Duros", "Agua"], c: 1 }
+  { w: "SOLID", t: "Los sólidos son duros y mantienen su forma.", q: "¿Cómo son?", o: ["Blandos", "Duros", "Agua"], c: 1 },
+  { w: "SAD", t: "SaidVerso es tu mundo de aprendizaje y exploración.", q: "¿Cómo se llama este juego?", o: ["SaidVerso", "Robot Game", "Mundo Pixel"], c: 0 }
 ];
 
-const basicMaze = [
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
-  [1,0,1,1,0,1,0,1,1,1,1,1,0,1,0,1,1,1,0,1],
-  [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
-  [1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,1,0,1,0,1],
-  [1,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,1],
-  [1,0,1,1,1,1,1,0,1,0,1,0,1,1,1,1,1,1,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+// Laberinto Vertical Optimizado (11x15)
+const verticalMaze = [
+  [1,1,1,1,1,1,1,1,1,1,1],
+  [1,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,1,1,0,1,1,1,0,1],
+  [1,0,0,0,1,0,1,0,0,0,1],
+  [1,1,1,0,1,0,1,0,1,1,1],
+  [1,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,1,1,1,1,1,1,0,1],
+  [1,0,0,0,0,0,0,0,0,0,1],
+  [1,1,1,0,1,1,1,0,1,1,1],
+  [1,0,0,0,1,0,1,0,0,0,1],
+  [1,0,1,1,1,0,1,1,1,0,1],
+  [1,0,0,0,0,0,0,0,0,0,1],
+  [1,1,1,1,1,1,1,1,1,1,1]
 ];
 
 const niveles = data.map((item, index) => ({
   nombre: `Nivel ${index + 1}: ${item.w}`,
   config: {
     word: item.w,
-    hint: `CESAR +1`,
+    hint: `REGLA: SALTA 1 LETRA (A->B)`,
     shift: 1,
-    maze: basicMaze,
-    learning: {
-        text: item.t,
-        question: item.q,
-        options: item.o,
-        correct: item.c
-    }
+    maze: verticalMaze,
+    learning: { text: item.t, question: item.q, options: item.o, correct: item.c }
   }
 }));
 
 async function upload() {
-  console.log("🚀 Inyectando 100 Niveles de CONOCIMIENTO REAL...");
+  console.log("🚀 Sincronizando SaidVerso Vertical (100 Niveles)...");
   await supabase.from('niveles').delete().neq('id', 0);
   const { error } = await supabase.from('niveles').insert(niveles);
   if (error) console.error("❌ Error:", error.message);
-  else console.log("✅ ¡Biblioteca de 100 lecciones completada!");
+  else console.log("✅ SaidVerso está listo y optimizado.");
 }
 
 upload();
