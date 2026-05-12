@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SaidVerso v3.8</title>
+    <title>SaidVerso v4.0</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -13,12 +13,19 @@
         .ui-overlay { position: absolute; top: 10px; left: 10px; width: calc(100% - 20px); pointer-events: none; color: #00ffff; display: flex; justify-content: space-between; font-size: 12px; text-transform: uppercase; z-index: 10; }
         .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 5, 25, 0.98); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; padding: 20px; box-sizing: border-box; color: #00ffff; text-align: center; }
         input { background: #1a1a2e; border: 2px solid #00ffff; color: #00ffff; padding: 15px; font-family: 'Courier Prime', monospace; font-size: 18px; margin: 10px; text-align: center; outline: none; width: 80%; }
-        button { background: #00ffff; color: #000; border: none; padding: 12px 25px; font-family: 'Courier Prime', monospace; font-weight: bold; font-size: 14px; cursor: pointer; box-shadow: 0 0 15px #00ffff; margin-top: 10px; }
-        .quiz-option { background: #1a1a2e; border: 1px solid #00ffff; color: #00ffff; padding: 12px; margin: 8px; width: 90%; cursor: pointer; font-family: 'Courier Prime', monospace; }
-        .quiz-option:hover { background: #00ffff; color: #000; }
-        #leaderboard { margin-top: 15px; font-size: 11px; color: #ffff00; width: 85%; background: rgba(0,255,255,0.05); padding: 8px; border-radius: 5px; }
-        .rank-item { display: flex; justify-content: space-between; margin: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        button { background: #00ffff; color: #000; border: none; padding: 12px 25px; font-family: 'Courier Prime', monospace; font-weight: bold; font-size: 14px; cursor: pointer; box-shadow: 0 0 15px #00ffff; margin-top: 10px; text-transform: uppercase; }
+        
+        /* Intro Styles */
+        #intro-screen { z-index: 500; background: #000; transition: opacity 1s; }
+        .boot-line { font-size: 10px; color: #00ff00; width: 100%; text-align: left; padding-left: 20px; opacity: 0.7; }
+        
+        /* Dashboard Styles */
+        #dashboard-screen { background: radial-gradient(circle, #0a0a2e 0%, #020205 100%); }
+        .stat-card { background: rgba(0, 255, 255, 0.05); border: 1px solid #00ffff; padding: 15px; width: 85%; margin: 10px 0; border-radius: 8px; }
+        .badge { display: inline-block; padding: 5px 10px; background: #ffff00; color: #000; font-size: 10px; border-radius: 3px; margin: 5px; font-weight: bold; }
+        
         #pause-btn { position: absolute; bottom: 20px; left: 20px; width: 50px; height: 50px; background: rgba(0,255,255,0.2); border: 2px solid #00ffff; color: #00ffff; border-radius: 50%; font-size: 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; pointer-events: auto; z-index: 200; }
+        .phrase { font-style: italic; font-size: 12px; color: #ff00ff; margin: 15px 0; }
     </style>
 </head>
 <body>
@@ -26,17 +33,39 @@
 <div id="game-wrapper">
     <div id="game-container"></div>
     
-    <div id="pause-btn" onclick="togglePause()">⏸</div>
+    <div id="pause-btn" style="display:none;" onclick="togglePause()">⏸</div>
+
+    <!-- INTRO SEQUENCE -->
+    <div id="intro-screen" class="modal">
+        <div id="boot-log" style="height: 150px; overflow: hidden; width: 100%; margin-bottom: 30px;"></div>
+        <h1 id="intro-logo" style="color:#00ffff; font-size: 40px; opacity: 0; text-shadow: 0 0 20px #00ffff;">SAIDVERSO</h1>
+        <p id="intro-sub" style="color:#ff00ff; opacity: 0;">SISTEMA OPERATIVO v4.0</p>
+    </div>
 
     <!-- LOGIN -->
-    <div id="login-screen" class="modal">
-        <h1 style="color:#00ffff; text-shadow: 0 0 15px #00ffff; margin-bottom: 5px;">SAIDVERSO</h1>
-        <div id="leaderboard">
-            <div style="font-weight:bold; margin-bottom:5px; color:#00ffff;">🏆 MEJORES EXPLORADORES</div>
-            <div id="rank-list">Cargando...</div>
-        </div>
+    <div id="login-screen" class="modal" style="display:none;">
+        <h1 style="color:#00ffff; margin-bottom: 20px;">IDENTIFICACIÓN</h1>
         <input type="text" id="username-input" placeholder="TU NOMBRE" maxlength="12">
-        <button onclick="showInstructions()">SIGUIENTE</button>
+        <button onclick="showDashboard()">ENTRAR AL SISTEMA</button>
+    </div>
+
+    <!-- DASHBOARD (MENU PRINCIPAL) -->
+    <div id="dashboard-screen" class="modal" style="display:none;">
+        <h2 id="dash-welcome" style="color:#00ffff; margin-top: 0;">HOLA, EXPLORADOR</h2>
+        <div class="phrase" id="motivational-phrase">"Cada letra es un paso hacia la sabiduría."</div>
+        
+        <div class="stat-card">
+            <div style="font-size: 12px; color:#ffff00;">MISIÓN ACTUAL</div>
+            <div id="dash-level" style="font-size: 24px; font-weight: bold;">NIVEL 1</div>
+        </div>
+
+        <div class="stat-card">
+            <div style="font-size: 12px; color:#ffff00; margin-bottom: 10px;">LOGROS DE RANGO</div>
+            <div id="dash-badges"></div>
+        </div>
+
+        <button style="font-size: 20px; padding: 20px 40px; margin-top: 20px;" onclick="startGame()">¡INICIAR EXPLORACIÓN!</button>
+        <button style="background: none; border: 1px solid #ff00ff; color:#ff00ff; margin-top: 20px;" onclick="showLogin()">CAMBIAR USUARIO</button>
     </div>
 
     <!-- PAUSA -->
@@ -44,16 +73,6 @@
         <h2 style="color:#00ffff;">PAUSA TÁCTICA</h2>
         <button onclick="togglePause()">REANUDAR</button>
         <button style="background:#ff00ff; color:#fff;" onclick="window.location.reload()">MENÚ PRINCIPAL</button>
-    </div>
-
-    <div id="instruction-screen" class="modal" style="display:none;">
-        <h2 style="color:#ffff00;">¡HOLA!</h2>
-        <p style="font-size: 12px; line-height: 1.4; text-align: left;">
-            🎯 <b>RECONOCIMIENTO:</b> Al iniciar tendrás 3 seg. para ver el mapa.<br><br>
-            🚨 <b>CENTINELA:</b> Te perseguirá después de la cuenta atrás.<br><br>
-            ⏸ <b>PAUSA:</b> Usa el botón de abajo si necesitas descansar.
-        </p>
-        <button onclick="startGame()">¡A JUGAR!</button>
     </div>
 
     <div id="learning-modal" class="modal" style="display:none; z-index: 150;">
@@ -65,7 +84,7 @@
         <div id="quiz-options" style="width:100%; display:flex; flex-direction:column; align-items:center;"></div>
     </div>
 
-    <div class="ui-overlay">
+    <div class="ui-overlay" style="display:none;">
         <div id="ui-lives" style="color:#ff00ff; font-weight:bold;">❤️❤️❤️</div>
         <div id="ui-streak" style="color:#ffff00; font-weight:bold;">🔥 0</div>
     </div>
@@ -111,6 +130,14 @@ let collectedWord = "", uiTextWord, uiTextHint, uiTextLevel, lives = 3, streak =
 let dpad = { up: false, down: false, left: false, right: false };
 let isPaused = false, isScanning = true;
 
+const phrases = [
+    "¡Tu mente es tu mejor herramienta, explorador!",
+    "¡SaidVerso te espera para grandes descubrimientos!",
+    "Cada código descifrado te hace más sabio.",
+    "No te rindas, ¡el Centinela es lento pero tú eres listo!",
+    "¡Explora, aprende y domina el cifrado César!"
+];
+
 function preload() {
     const graphics = this.make.graphics();
     graphics.fillStyle(0x00ffff); graphics.fillRect(2, 2, 20, 20);
@@ -123,55 +150,100 @@ function preload() {
 }
 
 async function create() {
-    const scene = this;
-    fetchRanking();
+    runIntro();
     try {
         const { data, error } = await supabaseClient.from('niveles').select('*').order('id', { ascending: true });
         if (error) throw error;
         allLevels = data.map(d => d.config);
     } catch (e) { console.error("Error DB:", e); }
     if (allLevels.length === 0) allLevels = [{ word: "SAID", hint: "REGLA: +1", shift: 1, maze: [[1,1,1],[1,0,1],[1,1,1]] }];
+    
     const savedLevel = localStorage.getItem('cq_current_level');
-    if (savedLevel && savedLevel < allLevels.length) currentLevelIndex = parseInt(savedLevel);
+    if (savedLevel) currentLevelIndex = parseInt(savedLevel);
     const savedStreak = localStorage.getItem('cq_streak');
     if (savedStreak) streak = parseInt(savedStreak);
-    loadLevel(scene);
-    scene.physics.pause();
-    const savedName = localStorage.getItem('cq_username');
-    if (savedName) document.getElementById('username-input').value = savedName;
+    
+    loadLevel(this);
+    this.physics.pause();
+}
+
+function runIntro() {
+    const log = document.getElementById('boot-log');
+    const lines = [
+        "> CONECTANDO CON SUPABASE...",
+        "> DESCARGANDO LABERINTOS v4.0...",
+        "> CALIBRANDO CENTINELAS...",
+        "> CARGANDO DICCIONARIO...",
+        "> SISTEMA LISTO."
+    ];
+    let i = 0;
+    const interval = setInterval(() => {
+        if(i < lines.length) {
+            const div = document.createElement('div');
+            div.className = 'boot-line';
+            div.innerText = lines[i];
+            log.appendChild(div);
+            AudioFX.play(400 + i*100, 'sine', 0.05, 0.02);
+            i++;
+        } else {
+            clearInterval(interval);
+            document.getElementById('intro-logo').style.opacity = 1;
+            document.getElementById('intro-sub').style.opacity = 1;
+            setTimeout(() => {
+                document.getElementById('intro-screen').style.opacity = 0;
+                setTimeout(() => {
+                    document.getElementById('intro-screen').style.display = 'none';
+                    checkInitialState();
+                }, 1000);
+            }, 2000);
+        }
+    }, 400);
+}
+
+function checkInitialState() {
+    const name = localStorage.getItem('cq_username');
+    if (name) showDashboard();
+    else showLogin();
+}
+
+function showLogin() {
+    document.getElementById('dashboard-screen').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+}
+
+function showDashboard() {
+    const nameInput = document.getElementById('username-input').value.trim();
+    const name = nameInput || localStorage.getItem('cq_username') || "EXPLORADOR";
+    if (nameInput) localStorage.setItem('cq_username', name);
+
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('dashboard-screen').style.display = 'flex';
+    document.getElementById('dash-welcome').innerText = `HOLA, ${name}`;
+    document.getElementById('dash-level').innerText = `MISIÓN ${currentLevelIndex + 1}`;
+    document.getElementById('motivational-phrase').innerText = `"${phrases[Math.floor(Math.random()*phrases.length)]}"`;
+    
+    // Generar insignias
+    const badges = document.getElementById('dash-badges');
+    badges.innerHTML = "";
+    if (currentLevelIndex >= 0) badges.innerHTML += '<span class="badge">🎖️ NOVATO</span>';
+    if (currentLevelIndex >= 5) badges.innerHTML += '<span class="badge">🚀 EXPLORADOR</span>';
+    if (currentLevelIndex >= 20) badges.innerHTML += '<span class="badge">🛡️ EXPERTO</span>';
+    if (currentLevelIndex >= 50) badges.innerHTML += '<span class="badge">🔮 CRIPTÓGRAFO</span>';
+    if (currentLevelIndex >= 99) badges.innerHTML += '<span class="badge">👑 MAESTRO</span>';
+}
+
+function startGame() {
+    document.getElementById('dashboard-screen').style.display = 'none';
+    document.querySelector('.ui-overlay').style.display = 'flex';
+    document.getElementById('pause-btn').style.display = 'flex';
+    startScanMode();
 }
 
 function togglePause() {
     isPaused = !isPaused;
     const modal = document.getElementById('pause-modal');
-    if (isPaused) {
-        modal.style.display = 'flex';
-        game.scene.scenes[0].physics.pause();
-    } else {
-        modal.style.display = 'none';
-        if (!isScanning) game.scene.scenes[0].physics.resume();
-    }
-}
-
-async function fetchRanking() {
-    const { data } = await supabaseClient.from('rankings').select('username, score').order('score', { ascending: false }).limit(5);
-    if (data) {
-        const list = document.getElementById('rank-list');
-        list.innerHTML = data.map((r, i) => `<div class="rank-item"><span>${i+1}. ${r.username}</span> <span>NIVEL ${r.score/100}</span></div>`).join('');
-    }
-}
-
-function showInstructions() {
-    const name = document.getElementById('username-input').value.trim();
-    if (name.length < 2) return alert("¡Dime tu nombre!");
-    localStorage.setItem('cq_username', name);
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('instruction-screen').style.display = 'flex';
-}
-
-function startGame() {
-    document.getElementById('instruction-screen').style.display = 'none';
-    startScanMode();
+    if (isPaused) { modal.style.display = 'flex'; game.scene.scenes[0].physics.pause(); }
+    else { modal.style.display = 'none'; if (!isScanning) game.scene.scenes[0].physics.resume(); }
 }
 
 function startScanMode() {
@@ -181,16 +253,11 @@ function startScanMode() {
     countdownText.setText(`ESCANEANDO... ${count}`).setVisible(true);
     const timer = setInterval(() => {
         count--;
-        if (count > 0) {
-            countdownText.setText(`ESCANEANDO... ${count}`);
-        } else {
+        if (count > 0) countdownText.setText(`ESCANEANDO... ${count}`);
+        else {
             clearInterval(timer);
             countdownText.setText("¡EXPLORA!").setColor('#00ff00');
-            setTimeout(() => {
-                countdownText.setVisible(false);
-                isScanning = false;
-                if (!isPaused) game.scene.scenes[0].physics.resume();
-            }, 1000);
+            setTimeout(() => { countdownText.setVisible(false); isScanning = false; if (!isPaused) game.scene.scenes[0].physics.resume(); }, 1000);
         }
     }, 1000);
 }
@@ -307,8 +374,7 @@ function checkQuiz(selected, correct) {
         currentLevelIndex++; localStorage.setItem('cq_current_level', currentLevelIndex);
         saveScore();
         if (currentLevelIndex < allLevels.length) { 
-            loadLevel(game.scene.scenes[0]); 
-            startScanMode();
+            showDashboard();
         } else { alert("¡Felicidades!"); window.location.reload(); }
     } else { AudioFX.wrong(); alert("¡Analiza de nuevo!"); }
 }
