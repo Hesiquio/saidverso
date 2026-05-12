@@ -171,13 +171,13 @@
         }
         .game-btn:active { transform: scale(0.92); }
         #pause-btn {
-            bottom: 16px; left: 16px;
+            top: 16px; left: 16px;
             background: rgba(0,255,255,0.15);
             border: 2px solid #00ffff;
             color: #00ffff;
         }
         #power-btn {
-            bottom: 16px; right: 16px;
+            top: 16px; right: 16px;
             background: rgba(255,255,0,0.15);
             border: 2px solid #ffff00;
             color: #ffff00;
@@ -241,12 +241,23 @@
     <div id="power-btn" class="game-btn" style="display:none;" onclick="UI.openShop(true)">⚡</div>
 
     <!-- HUD -->
-    <div class="ui-overlay" style="display:none; align-items:center; justify-content:space-between; position:absolute; top:10px; left:0; width:calc(100% - 30px); margin-left:15px; z-index:10; pointer-events:none;">
-        <div id="ui-streak" style="color:#ff00ff; font-size:18px;">🔥 0</div>
-        <div id="ui-inventory" style="background:rgba(0,255,255,0.1); border:1px solid rgba(0,255,255,0.3); padding:8px 16px; border-radius:12px; color:#00ff99; pointer-events:auto; font-size:16px;">
-            ❤️0  ⭐0  👻0  ⚡0  🔑0  👁️0
+    <div class="ui-overlay" style="display:none;">
+        <!-- Top Center: Inventory -->
+        <div style="position:absolute; top:20px; width:100%; display:flex; justify-content:center;">
+            <div id="ui-inventory" style="background:rgba(0,255,255,0.1); border:1px solid rgba(0,255,255,0.3); padding:8px 16px; border-radius:12px; color:#00ff99; pointer-events:auto; font-size:16px;">
+                ❤️0  ⭐0  👻0  ⚡0  🔑0  👁️0
+            </div>
         </div>
-        <div id="ui-coins-game" style="color:#ffff00; font-size:18px;">🪙 0</div>
+
+        <!-- Bottom Left: Streak -->
+        <div style="position:absolute; bottom:15px; left:15px;">
+            <div id="ui-streak" style="color:#ff00ff; font-size:18px; background:rgba(0,0,0,0.5); padding:4px 8px; border-radius:4px;">🔥 0</div>
+        </div>
+
+        <!-- Bottom Right: Coins -->
+        <div style="position:absolute; bottom:15px; right:15px;">
+            <div id="ui-coins-game" style="color:#ffff00; font-size:18px; background:rgba(0,0,0,0.5); padding:4px 8px; border-radius:4px;">🪙 0</div>
+        </div>
     </div>
 
     <!-- INTRO -->
