@@ -1,5 +1,5 @@
 let player, enemy, letters, mazeWalls, countdownText, coinsGroup, animalsGroup;
-let allLevels = [{ word: "SAID", hint: "REGLA: +1", shift: 1, maze: [[1,1,1,1,1,1,1,1],[1,0,0,0,0,0,0,1],[1,0,1,1,1,1,0,1],[1,0,0,0,0,0,0,1],[1,1,1,1,1,1,1,1]], learning: {text:"¡Bienvenido!", question:"¿Qué es 1+1?", options:["2","3"], correct:0} }];
+let allLevels = [{ word: "HOLA", hint: "REGLA: +1", shift: 1, maze: [[1,1,1,1,1,1,1,1],[1,0,0,0,0,0,0,1],[1,0,1,1,1,1,0,1],[1,0,0,0,0,0,0,1],[1,1,1,1,1,1,1,1]], learning: {text:"¡Bienvenido!", question:"¿Qué es 1+1?", options:["2","3"], correct:0} }];
 let currentLevel = null;
 let collectedWord = "", uiTextWord, uiTextHint, uiTextLevel, lives = 3;
 let dpad = { up: false, down: false, left: false, right: false };
@@ -8,18 +8,29 @@ let activePower = null, powerTimer = 0;
 
 const GameScene = {
     preload() {
-        const graphics = this.make.graphics();
-        graphics.fillStyle(0x00ffff); graphics.fillRect(0, 0, 24, 24);
-        graphics.generateTexture('robot', 24, 24);
-        graphics.clear(); graphics.fillStyle(0xff0000); graphics.fillCircle(12, 12, 10);
-        graphics.generateTexture('enemy', 24, 24);
-        graphics.clear(); graphics.fillStyle(0x1a1a3e); graphics.fillRect(0,0,40,40); // Azul oscuro para visibilidad
-        graphics.lineStyle(2, 0x00ffff, 0.8); graphics.strokeRect(2,2,36,36);
-        graphics.generateTexture('wall', 40, 40);
+        // No cargamos texturas externas por ahora para asegurar compatibilidad total
     },
 
     create() {
-        this.cameras.main.setBackgroundColor('#050515'); // Fondo azul muy oscuro
+        this.cameras.main.setBackgroundColor('#0a0a2a');
+        
+        // Crear texturas básicas con rectángulos simples
+        const robotG = this.add.graphics();
+        robotG.fillStyle(0x00ffff); robotG.fillRect(0, 0, 24, 24);
+        robotG.generateTexture('robot', 24, 24);
+        robotG.destroy();
+
+        const wallG = this.add.graphics();
+        wallG.fillStyle(0x1a1a3e); wallG.fillRect(0, 0, 40, 40);
+        wallG.lineStyle(2, 0x00ffff, 0.5); wallG.strokeRect(2, 2, 36, 36);
+        wallG.generateTexture('wall', 40, 40);
+        wallG.destroy();
+
+        const enemyG = this.add.graphics();
+        enemyG.fillStyle(0xff0000); enemyG.fillCircle(12, 12, 10);
+        enemyG.generateTexture('enemy', 24, 24);
+        enemyG.destroy();
+
         loadLevel(this);
         this.physics.pause();
         runIntro();
@@ -29,10 +40,7 @@ const GameScene = {
     async loadOnlineLevels() {
         try {
             const data = await Database.fetchLevels();
-            if (data && data.length > 0) {
-                allLevels = data;
-                console.log("Niveles cargados:", allLevels.length);
-            }
+            if (data && data.length > 0) allLevels = data;
         } catch (e) { console.error("Error DB:", e); }
     },
 
@@ -64,8 +72,11 @@ function loadLevel(scene) {
     let freeSpaces = [];
     currentLevel.maze.forEach((row, rIdx) => {
         row.forEach((cell, cIdx) => {
-            if (cell === 1) mazeWalls.create(cIdx * 40 + 20, rIdx * 40 + 160, 'wall').setDepth(1);
-            else freeSpaces.push({x: cIdx * 40 + 20, y: rIdx * 40 + 160});
+            if (cell === 1) {
+                mazeWalls.create(cIdx * 40 + 20, rIdx * 40 + 160, 'wall').setDepth(1);
+            } else {
+                freeSpaces.push({x: cIdx * 40 + 20, y: rIdx * 40 + 160});
+            }
         });
     });
 
@@ -110,8 +121,8 @@ function loadLevel(scene) {
         scene.wasd = scene.input.keyboard.addKeys('W,A,S,D');
     }
     
-    // Forzar foco de cámara
-    scene.cameras.main.centerOn(225, 400);
+    // Test Visual: Si ves esto, el juego está dibujando
+    scene.add.circle(225, 400, 5, 0xffffff, 0.5).setDepth(100);
 }
 
 function checkAndActivatePower() {
